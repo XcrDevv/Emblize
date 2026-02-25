@@ -273,47 +273,21 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
     where
         T: ?Sized + Serialize,
     {
-        match name {
-            "Vec2" => {
-                self.buf.push_byte(TokenTag::Vec2 as u8)?;
-                self.state = SerState::WrittingFixedSeq;
-            }
-            "Vec3" => {
-                self.buf.push_byte(TokenTag::Vec3 as u8)?;
-                self.state = SerState::WrittingFixedSeq;
-            }
-            "Vec4" => {
-                self.buf.push_byte(TokenTag::Vec4 as u8)?;
-                self.state = SerState::WrittingFixedSeq;
-            }
-            "Quat" => {
-                self.buf.push_byte(TokenTag::Quat as u8)?;
-                self.state = SerState::WrittingFixedSeq;
-            }
-            "TimestampMillis" => {
-                self.buf.push_byte(0x30)?;
-                self.state = SerState::WrittingTime;
-            }
-            "TimestampMicros" => {
-                self.buf.push_byte(0x31)?;
-                self.state = SerState::WrittingTime;
-            }
-            "MillisSinceBoot" => {
-                self.buf.push_byte(0x32)?;
-                self.state = SerState::WrittingTime;
-            }
-            "MicrosSinceBoot" => {
-                self.buf.push_byte(0x33)?;
-                self.state = SerState::WrittingTime;
-            }
-            "DurationMillis" => {
-                self.buf.push_byte(0x34)?;
-                self.state = SerState::WrittingTime;
-            }
-            "DurationMicros" => {
-                self.buf.push_byte(0x35)?;
-                self.state = SerState::WrittingTime;
-            }
+        let token_tag = TokenTag::try_from(name)?;
+        self.buf.push_byte(token_tag as u8)?;
+
+        match token_tag {
+            TokenTag::Vec2
+             | TokenTag::Vec3
+             | TokenTag::Vec4
+             | TokenTag::Quat => self.state = SerState::WrittingFixedSeq,
+            TokenTag::TimestampMillis
+             | TokenTag::TimestampMicros
+             | TokenTag::MillisSinceBoot
+             | TokenTag::MicrosSinceBoot
+             | TokenTag::DurationMillis
+             | TokenTag::DurationMicros => self.state = SerState::WrittingTime,
+
             _ => return Err(Error::DTypeNotSupported(self.state.as_str()))
         }
 
@@ -522,7 +496,6 @@ impl<'a, B: SerializerBuf> ser::SerializeStructVariant for &'a mut Serializer<B>
     where
         T: ?Sized + Serialize,
     {
-        // key.serialize(&mut **self)?;
         value.serialize(&mut **self)
     }
 

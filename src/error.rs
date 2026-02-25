@@ -62,7 +62,10 @@ pub enum Error {
     ExpectedRoot,
 
     #[error("The number of variants in an enum cannot exceed 255")]
-    IndexVariantExceeded
+    IndexVariantExceeded,
+
+    #[error("Invalid token")]
+    InvalidToken,
 }
 
 #[cfg(not(feature = "alloc"))]

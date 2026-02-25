@@ -47,6 +47,41 @@ pub enum TokenTag {
     Struct = 0xA0,
 }
 
+macro_rules! impl_from_to_token_str {
+    ($($variant:ident),*) => {
+        impl TryFrom<&'static str> for TokenTag {
+            type Error = Error;
+
+            fn try_from(value: &'static str) -> core::result::Result<Self, Error> {
+                match value {
+                    $(
+                        stringify!($variant) => Ok(TokenTag::$variant),
+                    )*
+                    _ => Err(Error::InvalidToken)
+                }
+            }
+        }
+
+        impl From<TokenTag> for &'static str {
+            fn from(value: TokenTag) -> Self {
+                match value {
+                    $(
+                        TokenTag::$variant => stringify!($variant),
+                    )*
+                }
+            }
+        }
+    }
+}
+
+impl_from_to_token_str!(
+    Bool, U8, U16, U32, U64, I8, I16, I32, I64, F32, F64, 
+    Str, Enum, 
+    Struct, EmptyArr, U8Arr, I32Arr, I64Arr, F32Arr, F64Arr, StrArr, 
+    TimestampMillis, TimestampMicros, MillisSinceBoot, MicrosSinceBoot, DurationMillis, DurationMicros, 
+    Vec2, Vec3, Vec4, Quat
+);
+
 #[cfg(feature = "alloc")]
 type Name<'a> = Option<Cow<'a, str>>;
 
