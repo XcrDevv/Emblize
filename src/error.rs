@@ -1,64 +1,98 @@
-use std::fmt::{self, Display};
+use core::fmt::Display;
+use thiserror::Error;
 
-use serde::{de, ser};
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = core::result::Result<T, Error>;
 
-// This is a bare-bones implementation. A real library would provide additional
-// information in its error type, for example the line and column at which the
-// error occurred, the byte offset into the input, or the current key being
-// processed.
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
-    // One or more variants that can be created by data structures through the
-    // `ser::Error` and `de::Error` traits. For example the Serialize impl for
-    // Mutex<T> might return an error because the mutex is poisoned, or the
-    // Deserialize impl for a struct may return an error because a required
-    // field is missing.
-    Message(String),
+    #[error("Serde serialization error")]
+    SerializationError,
 
-    // Zero or more variants that can be created directly by the Serializer and
-    // Deserializer without going through `ser::Error` and `de::Error`. These
-    // are specific to the format, in this case JSON.
-    Eof,
-    Syntax,
-    ExpectedBoolean,
-    ExpectedInteger,
-    ExpectedString,
-    ExpectedNull,
-    ExpectedArray,
-    ExpectedArrayComma,
-    ExpectedArrayEnd,
-    ExpectedMap,
-    ExpectedMapColon,
-    ExpectedMapComma,
-    ExpectedMapEnd,
-    ExpectedEnum,
-    TrailingCharacters,
-    NotSupported
+    #[error("Serde deserialization error")]
+    DeserializationError,
+
+    #[error("")]
+    CapacityError(#[from] heapless::CapacityError),
+
+    #[error("Buffer overflow")]
+    BufferOverflow,
+
+    #[cfg(feature = "alloc")]
+    #[error("{0}")]
+    Serde(alloc::string::String),
+
+    #[error("Unexpected end of input")]
+    UnexpectedEof,
+    
+    #[error("Invalid data type for current state: {0}")]
+    DTypeNotSupported(&'static str),
+
+    #[error("Unknown data type: 0x{0:0>2x}")]
+    UnknownDType(u8),
+
+    #[error("Serialization not supported for {0} type")]
+    SerUnsupported(&'static str),
+
+    #[error("Deserialization not supported for {0} type")]
+    DeUnsupported(&'static str),
+
+    #[error("Length required")]
+    LengthRequired,
+    
+    #[error("Missmatch length (expected {expected:?}, found {found:?})")]
+    MissmatchLength {
+        expected: usize,
+        found: usize,
+    },
+
+    #[error("Mismatch tuple data type. (expected 0x{expected:0>2x}, found 0x{found:0>2x}). All elements in the tuple must be of the same type.")]
+    MissmatchTupleDType {
+        expected: u8,
+        found: u8,
+    },
+
+    #[error("Failed to convert bytes to string")]
+    NoUTF8,
+
+    #[error("Expected type: {0}")]
+    ExpectedType(&'static str),
+
+    #[error("Root token expected at start")]
+    ExpectedRoot,
+
+    #[error("The number of variants in an enum cannot exceed 255")]
+    IndexVariantExceeded
 }
 
-impl ser::Error for Error {
+#[cfg(not(feature = "alloc"))]
+impl serde::ser::Error for Error {
+    fn custom<T: Display>(_msg: T) -> Self {
+        Error::SerializationError
+    }
+}
+
+#[cfg(not(feature = "alloc"))]
+impl serde::de::Error for Error {
+    fn custom<T: Display>(_msg: T) -> Self {
+        Error::DeserializationError
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl serde::ser::Error for Error {
     fn custom<T: Display>(msg: T) -> Self {
-        Error::Message(msg.to_string())
+        use alloc::string::ToString;
+
+        Error::Serde(msg.to_string())
     }
 }
 
-impl de::Error for Error {
+#[cfg(feature = "alloc")]
+impl serde::de::Error for Error {
     fn custom<T: Display>(msg: T) -> Self {
-        Error::Message(msg.to_string())
+        use alloc::string::ToString;
+
+        Error::Serde(msg.to_string())
     }
 }
-
-impl Display for Error {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Error::Message(msg) => formatter.write_str(msg),
-            Error::Eof => formatter.write_str("unexpected end of input"),
-            /* and so forth */
-            _ => formatter.write_str("not implemented"),
-        }
-    }
-}
-
-impl std::error::Error for Error {}
