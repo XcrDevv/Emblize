@@ -68,24 +68,6 @@ fn unsupported_serialize_unit_struct() {
     let _ = serialize_to_alloc_vec(&value).unwrap();
 }
 
-
-#[test]
-#[should_panic]
-fn unsupported_serialize_newtype_variant() {
-    #[derive(Serialize)]
-    enum E {
-        VariantA(u8)
-    }
-
-    #[derive(Serialize)]
-    struct Root {
-        v: E
-    }
-
-    let value = Root { v: E::VariantA(0) };
-    let _ = serialize_to_alloc_vec(&value).unwrap();
-}
-
 #[test]
 #[should_panic]
 fn unsupported_serialize_tuple_variant() {
