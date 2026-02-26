@@ -1,7 +1,6 @@
 #[cfg(feature = "alloc")]
 use alloc::{
-    borrow::Cow,
-    vec::Vec
+    borrow::Cow, boxed::Box, vec::Vec
 };
 use num_enum::TryFromPrimitive;
 use crate::error::Error;
@@ -105,7 +104,7 @@ pub enum Token<'a> {
     F64(Name<'a>, f64),
 
     Str(Name<'a>, Cow<'a, str>),
-    Enum(Name<'a>, Cow<'a, str>),
+    Enum(Name<'a>, u8, Box<Token<'a>>),
 
     EmptyArr(Name<'a>),
     U8Arr(Name<'a>, Cow<'a, [u8]>),
@@ -134,20 +133,45 @@ pub enum Token<'a> {
 pub type OwnedToken = Token<'static>;
 
 #[cfg(feature = "alloc")]
-pub trait Named {
-    fn name(&self) -> &str;
-}
-
 #[cfg(feature = "alloc")]
-impl<'a> Named for Token<'a> {
-    fn name(&self) -> &str {
+impl<'a> Token<'a> {
+    pub fn name(&'a self) -> &'a str {
         match self {
-            Token::Struct(_, _) => unreachable!(),
-            _ => {
-                // SAFETY: All variant except Root have Cow<'a, str> as the first field
-                unsafe { 
-                    core::mem::transmute::<&Token, &Cow<str>>(self).as_ref()
-                }
+            Token::Bool(name, _)
+            | Token::U8(name, _)
+            | Token::U16(name, _)
+            | Token::U32(name, _)
+            | Token::U64(name, _)
+            | Token::I8(name, _)
+            | Token::I16(name, _)
+            | Token::I32(name, _)
+            | Token::I64(name, _)
+            | Token::F32(name, _)
+            | Token::F64(name, _)
+            | Token::Str(name, _)
+            | Token::Enum(name, _, _)
+            | Token::EmptyArr(name)
+            | Token::U8Arr(name, _)
+            | Token::I32Arr(name, _)
+            | Token::I64Arr(name, _)
+            | Token::F32Arr(name, _)
+            | Token::F64Arr(name, _)
+            | Token::StrArr(name, _)
+            | Token::TimestampMillis(name, _)
+            | Token::TimestampMicros(name, _)
+            | Token::MillisSinceBoot(name, _)
+            | Token::MicrosSinceBoot(name, _)
+            | Token::DurationMillis(name, _)
+            | Token::DurationMicros(name, _)
+            | Token::Vec2(name, _)
+            | Token::Vec3(name, _)
+            | Token::Vec4(name, _)
+            | Token::Quat(name, _) => {
+                name.as_deref().expect("Token must have a name")
+            }
+
+            Token::Struct(name, _) => {
+                name.as_deref().expect("Struct must have a name")
             }
         }
     }

@@ -32,12 +32,13 @@ impl<B: SerializerBuf> Serializer<B> {
                 self.buf.push_byte(TokenTag::from(token) as u8)?;
                 self.write_string(value)?;
             }
-            Token::Enum(name, variant) => {
+            Token::Enum(name, variant_index,variant) => {
                 if let Some(name) = name {
                     self.write_string(name)?;
                 }
                 self.buf.push_byte(TokenTag::from(token) as u8)?;
-                self.write_string(variant)?;
+                self.buf.push_bytes(variant_index.to_be_bytes().as_ref())?;
+                self.write_any(variant)?;
             }
 
             Token::Struct(name, fields) => {

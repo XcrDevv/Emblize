@@ -1,4 +1,5 @@
 use core::fmt::Debug;
+use alloc::boxed::Box;
 use alloc::vec;
 use alloc::{
     string::String,
@@ -13,7 +14,6 @@ use crate::{core::{read_write::Reader, utils::endian::BytesNum}, de::deserialize
 impl<'de> Deserializer<'de> {
     pub fn read_any(&mut self) -> Result<OwnedToken, Error> {
         let name = if self.state == DeState::ReadingValue {
-            self.state = DeState::ReadingField;
             None
         } else {
             Some(Cow::Owned(self.read_string()?))
@@ -35,9 +35,17 @@ impl<'de> Deserializer<'de> {
             TokenTag::F64 => Token::F64(name, self.input.read_number()?),
 
             TokenTag::Str => Token::Str(name, Cow::Owned(self.read_string()?)),
-            TokenTag::Enum => Token::Enum(name, Cow::Owned(self.read_string()?)),
+            TokenTag::Enum => {
+                self.state = DeState::ReadingValue;
+
+                let variant_index = self.input.read_number()?;
+                let token = Box::new(self.read_any().unwrap());
+                Token::Enum(name, variant_index, token)
+            }
 
             TokenTag::Struct => {
+                self.state = DeState::ReadingField;
+
                 let field_count = self.input.read_byte()? as usize;
                 let mut tokens = Vec::with_capacity(field_count);
 
@@ -45,7 +53,7 @@ impl<'de> Deserializer<'de> {
                     let token = self.read_any()?;
                     tokens.push(token);
                 }
-
+                
                 Token::Struct(name, tokens)
             },
 

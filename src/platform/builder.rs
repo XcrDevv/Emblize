@@ -1,3 +1,4 @@
+use alloc::boxed::Box;
 use alloc::vec::Vec;
 use alloc::borrow::Cow;
 
@@ -45,8 +46,13 @@ impl<'a> StructBuilder<'a> {
         self
     }
 
-    pub fn empty_arr(mut self,  name: &'a str) -> Self {
+    pub fn empty_arr(mut self, name: &'a str) -> Self {
         self.tokens.push(Token::EmptyArr(Some(name.into())));
+        self
+    }
+
+    pub fn enum_(mut self, name: &'a str, variant_index: u8, token: Token<'a>) -> Self {
+        self.tokens.push(Token::Enum(Some(name.into()), variant_index, Box::new(token)));
         self
     }
 
@@ -103,7 +109,6 @@ builder_methods! {
     f64: F64(f64),
 
     string: Str(&'a str),
-    enum_: Enum(&'a str),
 
     u8_arr: U8Arr(&'a [u8]),
     i32_arr: I32Arr(&'a [i32]),
