@@ -296,14 +296,17 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
     fn serialize_newtype_variant<T>(
         self,
         _name: &'static str,
-        _variant_index: u32,
+        variant_index: u32,
         _variant: &'static str,
-        _value: &T,
+        value: &T,
     ) -> Result<Self::Ok>
     where
         T: ?Sized + Serialize,
     {
-        Err(Error::SerUnsupported("newtype variant"))
+        self.state = SerState::WritingField;
+        self.buf.push_byte(TokenTag::Enum as u8)?;
+        self.buf.push_byte(u8::try_from(variant_index).map_err(|_| Error::IndexVariantExceeded)?)?;
+        value.serialize(self)
     }
 
     fn serialize_seq(
