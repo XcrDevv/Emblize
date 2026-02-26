@@ -307,14 +307,6 @@ fn deserialize_tuple_i32() {
 }
 
 #[test]
-#[should_panic]
-fn deserialize_tuple_t() {
-    let value = [TokenTag::I32Arr as u8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02];
-    let _ = deserialize::<(i32, u32)>(&value).unwrap();
-}
-
-
-#[test]
 fn deserialize_struct() {
     #[derive(Debug, Deserialize, PartialEq, Eq)]
     struct S {

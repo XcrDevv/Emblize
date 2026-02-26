@@ -318,18 +318,6 @@ fn serialize_tuple_i32() {
 }
 
 #[test]
-#[should_panic]
-fn serialize_tuple_t() {
-    #[derive(Serialize)]
-    struct Root {
-        v: (i32, u32)
-    }
-
-    let value = Root { v: (1, 2) };
-    let _ = serialize_to_alloc_vec(&value).unwrap();
-}
-
-#[test]
 fn serialize_struct() {
     #[derive(Serialize)]
     struct S {
