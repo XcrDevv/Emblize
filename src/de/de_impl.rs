@@ -486,7 +486,7 @@ impl<'de, 'a> EnumAccess<'de> for Enum<'a, 'de> {
         let value = seed.deserialize(
             serde::de::value::U8Deserializer::<Error>::new(index)
         )?;
-        Ok((value, self)) // <-- retornas self
+        Ok((value, self))
     }
 }
 
@@ -518,7 +518,6 @@ impl<'de, 'a> VariantAccess<'de> for Enum<'a, 'de> {
     where
         V: de::Visitor<'de>,
     {
-        // en binario ignoramos los nombres, leemos por posición igual que tuple
         visitor.visit_seq(SizedCollection {
             de: self.de,
             remaining: fields.len(),

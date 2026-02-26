@@ -256,12 +256,11 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
     fn serialize_unit_variant(
         self,
         _name: &'static str,
-        _variant_index: u32,
-        variant: &'static str,
+        variant_index: u32,
+        _variant: &'static str,
     ) -> Result<Self::Ok> {
         self.buf.push_byte(TokenTag::Enum as u8)?;
-        self.buf.push_bytes(&(variant.len() as u16).to_be_bytes())?;
-        self.buf.push_bytes(&variant.as_bytes())?;
+        self.buf.push_byte(u8::try_from(variant_index).map_err(|_| Error::IndexVariantExceeded)?)?;
         Ok(())
     }
 
