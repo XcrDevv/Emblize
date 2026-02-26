@@ -1,6 +1,6 @@
 #![cfg(feature = "alloc")]
 
-use emblize::{StructBuilder, core::math::*, as_bytes, from_bytes, core::token::Token};
+use emblize::{StructBuilder, as_bytes, core::{math::*, token::Token}, from_bytes, platform::factory::*};
 
 #[test]
 fn build_tokens() {
@@ -18,7 +18,7 @@ fn build_tokens() {
         .f32("f32", 1.0)
         .f64("f64", 1.0)
         .string("str", "lorem")
-        .enum_("enm", "v")
+        .enum_("enm", 1, bool(true))
         .map(StructBuilder::new("struct").f32("f32", 3.14))
         .map(StructBuilder::new("nested").f32("f32", 2.7182))
         .empty_arr("e_arr")
@@ -54,7 +54,7 @@ fn build_tokens() {
         Token::F32(Some("f32".into()), 1.0),
         Token::F64(Some("f64".into()), 1.0),
         Token::Str(Some("str".into()), "lorem".into()),
-        Token::Enum(Some("enm".into()), "v".into()),
+        Token::Enum(Some("enm".into()), 1, Box::new(bool(true))),
         Token::Struct(Some("struct".into()), vec![
             Token::F32(Some("f32".into()), 3.14),
         ]),
@@ -298,11 +298,11 @@ fn serialize_deserialize_string() {
 #[test]
 fn serialize_deserialize_enum() {
     let token = StructBuilder::new_root()
-        .enum_("enm", "VariantB")
+        .enum_("enm", 1, bool(true))
         .build();
     
     let expected_token = Token::Struct(None, vec![
-        Token::Enum(Some("enm".into()), "VariantB".into()),
+        Token::Enum(Some("enm".into()), 1, Box::new(bool(true))),
     ]);
 
     let bytes = as_bytes(&token).unwrap();
