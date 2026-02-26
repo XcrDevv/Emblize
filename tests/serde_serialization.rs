@@ -180,6 +180,24 @@ fn serialize_unit_variant() {
 }
 
 #[test]
+fn serialize_struct_variant() {
+    #[derive(Serialize)]
+    enum E {
+        #[allow(dead_code)]
+        VariantA { u: u8 },
+        VariantB { v: bool },
+    }
+
+    let value = E::VariantB { v: true };
+    let expected = vec![TokenTag::Enum as u8, 0x01, TokenTag::Struct as u8, 0x01, 0x00, 0x01, 0x76, TokenTag::Bool as u8, 0x01];
+
+    assert_eq!(
+        serialize_to_alloc_vec(&value).unwrap(),
+        expected
+    )
+}
+
+#[test]
 fn serialize_vec2() {
     let value = Vec2::new(0.0, 1.0);
     let expected = vec![TokenTag::Vec2 as u8,

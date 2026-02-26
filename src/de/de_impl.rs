@@ -454,6 +454,7 @@ impl<'de, 'a> MapAccess<'de> for SizedCollection<'a, 'de> {
             return Ok(None);
         }
 
+        self.remaining -= 1;
         seed.deserialize(&mut *self.de).map(Some)
     }
 
@@ -461,7 +462,6 @@ impl<'de, 'a> MapAccess<'de> for SizedCollection<'a, 'de> {
     where
         V: de::DeserializeSeed<'de>,
     {
-        self.remaining -= 1;
         seed.deserialize(&mut *self.de)
     }
 
@@ -518,7 +518,13 @@ impl<'de, 'a> VariantAccess<'de> for Enum<'a, 'de> {
     where
         V: de::Visitor<'de>,
     {
-        visitor.visit_seq(SizedCollection {
+        TokenTag::Struct.matches(self.de.input.read_byte()?)?;
+        let len = self.de.input.read_number::<u8>()? as usize;
+        if len != fields.len() {
+            return Err(Error::MissmatchLength { expected: fields.len(), found: len });
+        }
+
+        visitor.visit_map(SizedCollection {
             de: self.de,
             remaining: fields.len(),
         })

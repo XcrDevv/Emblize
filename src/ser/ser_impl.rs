@@ -374,10 +374,12 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
         _name: &'static str,
         variant_index: u32,
         _variant: &'static str,
-        _len: usize,
+        len: usize,
     ) -> Result<Self::SerializeStructVariant> {
         self.buf.push_byte(TokenTag::Enum as u8)?;
         self.buf.push_byte(u8::try_from(variant_index).map_err(|_| Error::IndexVariantExceeded)?)?;
+        self.buf.push_byte(TokenTag::Struct as u8)?;
+        self.buf.push_byte(len as u8)?;
         Ok(self)
     }
 }
@@ -491,10 +493,12 @@ impl<'a, B: SerializerBuf> ser::SerializeStructVariant for &'a mut Serializer<B>
     type Ok = ();
     type Error = Error;
 
-    fn serialize_field<T>(&mut self, _key: &'static str, value: &T) -> Result<()>
+    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<()>
     where
         T: ?Sized + Serialize,
     {
+        self.buf.push_bytes(&(key.len() as u16).to_be_bytes())?;
+        self.buf.push_bytes(&key.as_bytes())?;
         value.serialize(&mut **self)
     }
 

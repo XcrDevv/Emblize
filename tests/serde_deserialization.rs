@@ -169,6 +169,24 @@ fn deserialize_unit_variant() {
 }
 
 #[test]
+fn serialize_struct_variant() {
+    #[derive(Debug, Deserialize, PartialEq, Eq)]
+    enum E {
+        #[allow(dead_code)]
+        VariantA { u: u8 },
+        VariantB { v: bool },
+    }
+
+    let value = vec![TokenTag::Enum as u8, 0x01, TokenTag::Struct as u8, 0x01, 0x00, 0x01, 0x76, TokenTag::Bool as u8, 0x01];
+    let expected = E::VariantB { v: true };
+
+    assert_eq!(
+        deserialize::<E>(&value).unwrap(),
+        expected
+    )
+}
+
+#[test]
 fn deserialize_vec2() {
     let value = [TokenTag::Vec2 as u8,
         0x00, 0x00, 0x00, 0x00, 
