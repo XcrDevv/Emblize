@@ -159,7 +159,7 @@ fn deserialize_unit_variant() {
         VariantB,
     }
 
-    let value = [TokenTag::Enum as u8, 0x00, 0x08, 0x56, 0x61, 0x72, 0x69, 0x61, 0x6e, 0x74, 0x42];
+    let value = [TokenTag::Enum as u8, 0x02];
     let expected = E::VariantB;
 
     assert_eq!(

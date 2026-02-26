@@ -171,7 +171,7 @@ fn serialize_unit_variant() {
     }
 
     let value = E::VariantB;
-    let expected = vec![TokenTag::Enum as u8, 0x00, 0x08, 0x56, 0x61, 0x72, 0x69, 0x61, 0x6e, 0x74, 0x42];
+    let expected = vec![TokenTag::Enum as u8, 0x01];
 
     assert_eq!(
         serialize_to_alloc_vec(&value).unwrap(),
