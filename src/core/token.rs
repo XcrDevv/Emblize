@@ -84,10 +84,23 @@ impl_from_to_token_str!(
 #[cfg(feature = "alloc")]
 type Name<'a> = Option<Cow<'a, str>>;
 
-/// Each variant of `Token` is represented by one byte.
-/// Except for the `End` token, all variant includes a name:
-/// A string preceded by 2 bytes indicating its length,
-/// followed by `n` bytes corresponding to the characters in the string
+/// A serialized token in the binary format.
+///
+/// Each token starts with a one-byte discriminant indicating its variant.
+///
+/// Most variants carry a `Name<'a>` identifying the field they belong to.
+/// The `Struct` variant is the exception: it does not have a `Name`, but
+/// optionally carries its own type name.
+///
+/// Depending on the variant, the payload may contain:
+/// - A primitive value (integer, float, bool)
+/// - A string or array (owned or borrowed)
+/// - A nested token (`Enum`)
+/// - A collection of nested tokens (`Struct`)
+/// - Time-related values (timestamps, durations, etc.)
+/// - Math types (Vec2, Vec3, Vec4, Quat)
+///
+/// The exact binary layout of the payload depends on the variant.
 #[cfg(feature = "alloc")]
 #[derive(Debug, PartialEq)]
 pub enum Token<'a> {
