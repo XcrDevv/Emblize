@@ -1,8 +1,10 @@
 #![cfg(feature = "alloc")]
 
 use core::f32;
-
-use emblize::{core::token::TokenTag, deserialize, core::math::*, core::time::*};
+use emblize::core::token::TokenTag;
+use emblize::types::*;
+use emblize::from_bytes;
+// use emblize::{core::token::TokenTag, deserialize, core::math::*, core::time::*};
 use serde::Deserialize;
 
 #[test]
@@ -11,7 +13,7 @@ fn deserialize_true() {
     let expected = true;
 
     assert_eq!(
-        deserialize::<bool>(&value).unwrap(),
+        from_bytes::<bool>(&value).unwrap(),
         expected
     );
 }
@@ -22,7 +24,7 @@ fn deserialize_false() {
     let expected = false;
 
     assert_eq!(
-        deserialize::<bool>(&value).unwrap(),
+        from_bytes::<bool>(&value).unwrap(),
         expected
     );
 }
@@ -33,7 +35,7 @@ fn deserialize_u8() {
     let expected: u8 = 6;
 
     assert_eq!(
-        deserialize::<u8>(&value).unwrap(),
+        from_bytes::<u8>(&value).unwrap(),
         expected
     );
 }
@@ -44,7 +46,7 @@ fn deserialize_u32() {
     let expected: u32 =1633837924;
 
     assert_eq!(
-        deserialize::<u32>(&value).unwrap(),
+        from_bytes::<u32>(&value).unwrap(),
         expected
     );
 }
@@ -55,7 +57,7 @@ fn deserialize_i8() {
     let expected: i8 = -15;
 
     assert_eq!(
-        deserialize::<i8>(&value).unwrap(),
+        from_bytes::<i8>(&value).unwrap(),
         expected
     );
 }
@@ -66,7 +68,7 @@ fn deserialize_i32() {
     let expected: i32 = -10329244;
 
     assert_eq!(
-        deserialize::<i32>(&value).unwrap(),
+        from_bytes::<i32>(&value).unwrap(),
         expected
     );
 }
@@ -77,7 +79,7 @@ fn deserialize_f32() {
     let expected: f32 =  -3.009215926773463e+38;
 
     assert_eq!(
-        deserialize::<f32>(&value).unwrap(),
+        from_bytes::<f32>(&value).unwrap(),
         expected
     );
 }
@@ -88,7 +90,7 @@ fn deserialize_f32_inf() {
     let expected: f32 =  f32::INFINITY;
 
     assert_eq!(
-        deserialize::<f32>(&value).unwrap(),
+        from_bytes::<f32>(&value).unwrap(),
         expected
     );
 }
@@ -99,7 +101,7 @@ fn deserialize_f32_neg_inf() {
     let expected: f32 =  f32::NEG_INFINITY;
 
     assert_eq!(
-        deserialize::<f32>(&value).unwrap(),
+        from_bytes::<f32>(&value).unwrap(),
         expected
     );
 }
@@ -110,7 +112,7 @@ fn deserialize_f64() {
     let expected: f64 = -4.035208983966375e+305;
 
     assert_eq!(
-        deserialize::<f64>(&value).unwrap(),
+        from_bytes::<f64>(&value).unwrap(),
         expected
     );
 }
@@ -121,7 +123,7 @@ fn deserialize_string() {
     let expected = String::from("Emblize");
 
     assert_eq!(
-        deserialize::<String>(&value).unwrap(),
+        from_bytes::<String>(&value).unwrap(),
         expected
     );
 }
@@ -132,7 +134,7 @@ fn deserialize_str() {
     let expected = "Emblize";
 
     assert_eq!(
-        deserialize::<&str>(&value).unwrap(),
+        from_bytes::<&str>(&value).unwrap(),
         expected
     );
 }
@@ -143,7 +145,7 @@ fn deserialize_bytes() {
     let expected: Vec<u8> = vec![0x00, 0xFF, 0x33, 0x26];
 
     assert_eq!(
-        deserialize::<Vec<u8>>(&value).unwrap(),
+        from_bytes::<Vec<u8>>(&value).unwrap(),
         expected
     );
 }
@@ -163,7 +165,7 @@ fn deserialize_unit_variant() {
     let expected = E::VariantB;
 
     assert_eq!(
-        deserialize::<E>(&value).unwrap(),
+        from_bytes::<E>(&value).unwrap(),
         expected
     );
 }
@@ -181,7 +183,7 @@ fn serialize_struct_variant() {
     let expected = E::VariantB { v: true };
 
     assert_eq!(
-        deserialize::<E>(&value).unwrap(),
+        from_bytes::<E>(&value).unwrap(),
         expected
     )
 }
@@ -195,7 +197,7 @@ fn deserialize_vec2() {
     let expected = Vec2::new(0.0, 1.0);
 
     assert_eq!(
-        deserialize::<Vec2>(&value).unwrap(),
+        from_bytes::<Vec2>(&value).unwrap(),
         expected
     );
 }
@@ -210,7 +212,7 @@ fn deserialize_vec3() {
     let expected = Vec3::new(0.0, 1.0, 2.0);
 
     assert_eq!(
-        deserialize::<Vec3>(&value).unwrap(),
+        from_bytes::<Vec3>(&value).unwrap(),
         expected
     );
 }
@@ -226,7 +228,7 @@ fn deserialize_vec4() {
     let expected = Vec4::new(0.0, 1.0, 2.0, 3.0);
 
     assert_eq!(
-        deserialize::<Vec4>(&value).unwrap(),
+        from_bytes::<Vec4>(&value).unwrap(),
         expected
     );
 }
@@ -242,7 +244,7 @@ fn deserialize_quaternion() {
     let expected = Quat::new(0.0, 1.0, 2.0, 3.0);
 
     assert_eq!(
-        deserialize::<Quat>(&value).unwrap(),
+        from_bytes::<Quat>(&value).unwrap(),
         expected
     );
 }
@@ -253,7 +255,7 @@ fn deserialize_timestamp_ms() {
     let expected = TimestampMillis(7017280452245743464);
 
     assert_eq!(
-        deserialize::<TimestampMillis>(&value).unwrap(),
+        from_bytes::<TimestampMillis>(&value).unwrap(),
         expected
     );
 }
@@ -264,7 +266,7 @@ fn deserialize_ms_since_boot() {
     let expected = MillisSinceBoot(7017280452245743464);
 
     assert_eq!(
-        deserialize::<MillisSinceBoot>(&value).unwrap(),
+        from_bytes::<MillisSinceBoot>(&value).unwrap(),
         expected
     );
 }
@@ -275,7 +277,7 @@ fn deserialize_duration_ms() {
     let expected = DurationMillis(-44363763471194264);
 
     assert_eq!(
-        deserialize::<DurationMillis>(&value).unwrap(),
+        from_bytes::<DurationMillis>(&value).unwrap(),
         expected
     );
 }
@@ -286,7 +288,7 @@ fn deserialize_empty_seq() {
     let expected: Vec<u8> = vec![];
 
     assert_eq!(
-        deserialize::<Vec<u8>>(&value).unwrap(),
+        from_bytes::<Vec<u8>>(&value).unwrap(),
         expected
     );
 }
@@ -297,7 +299,7 @@ fn deserialize_str_seq() {
     let expected: Vec<&str> = vec!["a", "b"];
 
     assert_eq!(
-        deserialize::<Vec<&str>>(&value).unwrap(),
+        from_bytes::<Vec<&str>>(&value).unwrap(),
         expected
     );
 }
@@ -308,7 +310,7 @@ fn deserialize_seq_i32() {
     let expected: Vec<i32> = vec![1, 2];
 
     assert_eq!(
-        deserialize::<Vec<i32>>(&value).unwrap(),
+        from_bytes::<Vec<i32>>(&value).unwrap(),
         expected
     );
 }
@@ -319,7 +321,7 @@ fn deserialize_tuple_i32() {
     let expected: (i32, i32) = (1, 2);
 
     assert_eq!(
-        deserialize::<(i32, i32)>(&value).unwrap(),
+        from_bytes::<(i32, i32)>(&value).unwrap(),
         expected
     );
 }
@@ -335,7 +337,7 @@ fn deserialize_struct() {
     let expected = S { f: 0 };
 
     assert_eq!(
-        deserialize::<S>(&value).unwrap(),
+        from_bytes::<S>(&value).unwrap(),
         expected
     );
 }
@@ -366,7 +368,7 @@ fn deserialize_nested_struct() {
     let expected = S { f: T { g: U { h: 0 } } };
 
     assert_eq!(
-        deserialize::<S>(&value).unwrap(),
+        from_bytes::<S>(&value).unwrap(),
         expected
     );
 }

@@ -4,7 +4,7 @@
 extern crate alloc;
 
 #[cfg(feature = "alloc")]
-pub mod platform;
+pub mod dynamic;
 
 pub mod core;
 pub mod de;
@@ -12,12 +12,13 @@ pub mod error;
 pub mod macros;
 pub mod ser;
 
-#[cfg(feature = "alloc")]
-pub use platform::{
-    builder::{StructBuilder},
-    serializer::as_bytes,
-    deserializer::from_bytes,
-};
+// #[cfg(feature = "alloc")]
+// pub use dynamic::{
+//     builder::{StructBuilder},
+//     encoder::encode,
+//     decoder::decode,
+// };
 
-pub use ser::ser_impl::serialize;
-pub use de::de_impl::deserialize;
+pub use ser::{to_allocvec, to_heaplessvec};
+pub use de::{from_bytes};
+pub use core::types;

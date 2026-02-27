@@ -2,8 +2,9 @@
 
 use core::f32;
 use std::vec;
-
-use emblize::{core::{math::*, time::*, token::TokenTag}, deserialize, ser::serialize_to_alloc_vec};
+use emblize::core::token::TokenTag;
+use emblize::{from_bytes, to_allocvec};
+use emblize::types::*;
 use serde::Serialize;
 
 #[test]
@@ -12,7 +13,7 @@ fn serialize_true() {
     let expected = vec![TokenTag::Bool as u8, 0x01];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     );
 }
@@ -23,7 +24,7 @@ fn serialize_false() {
     let expected = vec![TokenTag::Bool as u8, 0x00];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     );
 }
@@ -34,7 +35,7 @@ fn serialize_u8() {
     let expected = vec![TokenTag::U8 as u8, 0x06];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     );
 }
@@ -45,7 +46,7 @@ fn serialize_u32() {
     let expected = vec![TokenTag::U32 as u8, 0x61, 0x62, 0x63, 0x64];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     )
 }
@@ -56,7 +57,7 @@ fn serialize_i8() {
     let expected = vec![TokenTag::I8 as u8, 0xF1];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     )
 }
@@ -67,7 +68,7 @@ fn serialize_i32() {
     let expected = vec![TokenTag::I32 as u8, 0xFF, 0x62, 0x63, 0x64];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     )
 }
@@ -78,7 +79,7 @@ fn serialize_f32() {
     let expected = vec![TokenTag::F32 as u8, 0xFF, 0x62, 0x63, 0x64];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     )
 }
@@ -87,8 +88,8 @@ fn serialize_f32() {
 fn f32_nan_roundtrip() {
     let value = f32::NAN;
 
-    let bytes = serialize_to_alloc_vec(&value).unwrap();
-    let decoded: f32 = deserialize(&bytes).unwrap();
+    let bytes = to_allocvec(&value).unwrap();
+    let decoded: f32 = from_bytes(&bytes).unwrap();
 
     assert!(decoded.is_nan());
 }
@@ -100,7 +101,7 @@ fn serialize_f32_inf() {
     let expected = vec![TokenTag::F32 as u8, 0x7F, 0x80, 0x00, 0x00];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     );
 }
@@ -112,7 +113,7 @@ fn serialize_f32_neg_inf() {
     let expected = vec![TokenTag::F32 as u8, 0xFF, 0x80, 0x00, 0x00];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     );
 }
@@ -123,7 +124,7 @@ fn serialize_f64() {
     let expected = vec![TokenTag::F64 as u8, 0xFF, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     )
 }
@@ -134,7 +135,7 @@ fn serialize_string() {
     let expected = vec![TokenTag::Str as u8, 0x00, 0x07, 0x45, 0x6D, 0x62, 0x6C, 0x69, 0x7A, 0x65];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     )
 }
@@ -145,7 +146,7 @@ fn serialize_str() {
     let expected = vec![TokenTag::Str as u8, 0x00, 0x07, 0x45, 0x6D, 0x62, 0x6C, 0x69, 0x7A, 0x65];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     )
 }
@@ -156,7 +157,7 @@ fn serialize_bytes() {
     let expected = vec![TokenTag::U8Arr as u8, 0x00, 0x04, 0x00, 0xFF, 0x33, 0x26];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     )
 }
@@ -174,7 +175,7 @@ fn serialize_unit_variant() {
     let expected = vec![TokenTag::Enum as u8, 0x01];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     )
 }
@@ -192,7 +193,7 @@ fn serialize_struct_variant() {
     let expected = vec![TokenTag::Enum as u8, 0x01, TokenTag::Struct as u8, 0x01, 0x00, 0x01, 0x76, TokenTag::Bool as u8, 0x01];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     )
 }
@@ -206,7 +207,7 @@ fn serialize_vec2() {
     ];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     )
 }
@@ -221,7 +222,7 @@ fn serialize_vec3() {
     ];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     )
 }
@@ -237,7 +238,7 @@ fn serialize_vec4() {
     ];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     )
 }
@@ -253,7 +254,7 @@ fn serialize_quaternion() {
     ];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     )
 }
@@ -264,7 +265,7 @@ fn serialize_timestamp_ms() {
     let expected = vec![TokenTag::TimestampMillis as u8, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     )
 }
@@ -275,7 +276,7 @@ fn serialize_ms_since_boot() {
     let expected = vec![TokenTag::MillisSinceBoot as u8, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     )
 }
@@ -286,7 +287,7 @@ fn serialize_duration_ms() {
     let expected = vec![TokenTag::DurationMillis as u8, 0xFF, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     )
 }
@@ -297,7 +298,7 @@ fn serialize_empty_seq() {
     let expected = vec![TokenTag::EmptyArr as u8];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     )
 }
@@ -308,7 +309,7 @@ fn serialize_str_seq() {
     let expected = vec![TokenTag::StrArr as u8, 0x00, 0x02, 0x00, 0x01, 0x61, 0x00, 0x01, 0x62];   
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     )
 }
@@ -319,7 +320,7 @@ fn serialize_seq_i32() {
     let expected = vec![TokenTag::I32Arr as u8, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     )
 }
@@ -330,7 +331,7 @@ fn serialize_tuple_i32() {
     let expected = vec![TokenTag::I32Arr as u8, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     )
 }
@@ -346,7 +347,7 @@ fn serialize_struct() {
     let expected = vec![TokenTag::Struct as u8, 0x01, 0x00, 0x01, 0x66, TokenTag::U8 as u8, 0x00];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     )
 }
@@ -377,7 +378,7 @@ fn serialize_nested_struct() {
     ];
 
     assert_eq!(
-        serialize_to_alloc_vec(&value).unwrap(),
+        to_allocvec(&value).unwrap(),
         expected
     )
 }

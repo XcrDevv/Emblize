@@ -1,6 +1,8 @@
 #![cfg(feature = "alloc")]
 
-use emblize::{StructBuilder, as_bytes, core::{math::*, token::Token}, from_bytes, platform::factory::*};
+use emblize::dynamic::{encode, decode, StructBuilder, factory::*};
+use emblize::core::token::Token;
+use emblize::types::*;
 
 #[test]
 fn build_tokens() {
@@ -97,8 +99,8 @@ fn serialize_deserialize_false() {
         Token::Bool(Some("f".into()), false),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -113,8 +115,8 @@ fn serialize_deserialize_true() {
         Token::Bool(Some("t".into()), true),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -129,8 +131,8 @@ fn serialize_deserialize_u8() {
         Token::U8(Some("u8".into()), 42),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -145,8 +147,8 @@ fn serialize_deserialize_u16() {
         Token::U16(Some("u16".into()), 24930),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -161,8 +163,8 @@ fn serialize_deserialize_u32() {
         Token::U32(Some("u32".into()), 1633837924),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -177,8 +179,8 @@ fn serialize_deserialize_u64() {
         Token::U64(Some("u64".into()), 7017280452245743464),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -193,8 +195,8 @@ fn serialize_deserialize_i8() {
         Token::I8(Some("i8".into()), -15),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -209,8 +211,8 @@ fn serialize_deserialize_i16() {
         Token::I16(Some("i16".into()), -158),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -225,8 +227,8 @@ fn serialize_deserialize_i32() {
         Token::I32(Some("i32".into()), -10329244),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -241,8 +243,8 @@ fn serialize_deserialize_i64() {
         Token::I64(Some("i64".into()), -44363763471194264),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -257,8 +259,8 @@ fn serialize_deserialize_f32() {
         Token::F32(Some("f32".into()), -3.009215926773463e+38),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -273,8 +275,8 @@ fn serialize_deserialize_f64() {
         Token::F64(Some("f64".into()), -4.035208983966375e+305),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -289,8 +291,8 @@ fn serialize_deserialize_string() {
         Token::Str(Some("str".into()), "Emblize".into()),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -305,8 +307,8 @@ fn serialize_deserialize_enum() {
         Token::Enum(Some("enm".into()), 1, Box::new(bool(true))),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -323,8 +325,8 @@ fn serialize_deserialize_struct() {
         ]),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -341,8 +343,8 @@ fn serialize_deserialize_nested_struct() {
         ]),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -357,8 +359,8 @@ fn serialize_deserialize_empty_arr() {
         Token::EmptyArr(Some("e_arr".into())),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -373,8 +375,8 @@ fn serialize_deserialize_u8_arr() {
         Token::U8Arr(Some("u8_arr".into()), vec![0x00, 0xFF, 0x33, 0x26].into()),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -389,8 +391,8 @@ fn serialize_deserialize_i32_arr() {
         Token::I32Arr(Some("i32_arr".into()), vec![1, 2, 3].into()),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -405,8 +407,8 @@ fn serialize_deserialize_i64_arr() {
         Token::I64Arr(Some("i64_arr".into()), vec![1, 2, 3].into()),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -421,8 +423,8 @@ fn serialize_deserialize_f32_arr() {
         Token::F32Arr(Some("f32_arr".into()), vec![1.0, 2.0, 3.0].into()),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -437,8 +439,8 @@ fn serialize_deserialize_f64_arr() {
         Token::F64Arr(Some("f64_arr".into()), vec![1.0, 2.0, 3.0].into()),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -453,8 +455,8 @@ fn serialize_deserialize_string_arr() {
         Token::StrArr(Some("string_arr".into()), vec!["a".into(), "b".into()].into()),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -469,8 +471,8 @@ fn serialize_deserialize_timestamp_ms() {
         Token::TimestampMillis(Some("tsms".into()), 7017280452245743464),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -485,8 +487,8 @@ fn serialize_deserialize_timestamp_us() {
         Token::TimestampMicros(Some("tsus".into()), 7017280452245743464),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -501,8 +503,8 @@ fn serialize_deserialize_ms_since_boot() {
         Token::MillisSinceBoot(Some("mssb".into()), 7017280452245743464),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -517,8 +519,8 @@ fn serialize_deserialize_us_since_boot() {
         Token::MicrosSinceBoot(Some("ussb".into()), 7017280452245743464),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -533,8 +535,8 @@ fn serialize_deserialize_duration_ms() {
         Token::DurationMillis(Some("dnms".into()), -44363763471194264),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -549,8 +551,8 @@ fn serialize_deserialize_duration_us() {
         Token::DurationMicros(Some("dnus".into()), -44363763471194264),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -565,8 +567,8 @@ fn serialize_deserialize_vec2() {
         Token::Vec2(Some("vec2".into()), [0.0, 1.0]),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -581,8 +583,8 @@ fn serialize_deserialize_vec3() {
         Token::Vec3(Some("vec3".into()), [0.0, 1.0, 2.0]),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -597,8 +599,8 @@ fn serialize_deserialize_vec4() {
         Token::Vec4(Some("vec4".into()), [0.0, 1.0, 2.0, 3.0]),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }
@@ -613,8 +615,8 @@ fn serialize_deserialize_quaternion() {
         Token::Quat(Some("quat".into()), [0.0, 1.0, 2.0, 3.0]),
     ]);
 
-    let bytes = as_bytes(&token).unwrap();
-    let result = from_bytes(&bytes).unwrap();
+    let bytes = encode(&token).unwrap();
+    let result = decode(&bytes).unwrap();
 
     assert_eq!(result, expected_token)
 }

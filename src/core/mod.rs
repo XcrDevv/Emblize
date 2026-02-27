@@ -1,9 +1,15 @@
+mod math;
+mod time;
 pub mod token;
-pub mod math;
-pub mod time;
 pub mod utils;
 pub mod frame;
 pub mod read_write;
+
+
+pub mod types {
+    pub use super::time::*;
+    pub use super::math::*;
+}
 
 // #[cfg(feature = "alloc")]
 // mod imp {

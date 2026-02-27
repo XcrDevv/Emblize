@@ -147,7 +147,7 @@ impl<B: SerializerBuf> Serializer<B> {
 ///
 /// let content_bytes = as_bytes(&data);
 /// ```
-pub fn as_bytes(tk: &Token) -> Result<Vec<u8>, Error> {
+pub fn encode(tk: &Token) -> Result<Vec<u8>, Error> {
     let mut serializer = Serializer::new();
     serializer.write_any(tk)?;
     Ok(serializer.buf)

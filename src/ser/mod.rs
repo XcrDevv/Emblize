@@ -1,11 +1,11 @@
-use serde::Serialize;
-
-use crate::{error::Result, serialize};
-
 pub mod serializer;
-pub mod ser_impl;
+mod ser_impl;
 
-pub fn serialize_to_vec<T, const N: usize>(value: &T) -> Result<heapless::Vec<u8, N>>
+use serde::Serialize;
+use crate::error::Result;
+use ser_impl::serialize;
+
+pub fn to_heaplessvec<T, const N: usize>(value: &T) -> Result<heapless::Vec<u8, N>>
 where
     T: Serialize,
 {
@@ -13,7 +13,7 @@ where
 }
 
 #[cfg(feature = "alloc")]
-pub fn serialize_to_alloc_vec<T>(value: &T) -> Result<alloc::vec::Vec<u8>>
+pub fn to_allocvec<T>(value: &T) -> Result<alloc::vec::Vec<u8>>
 where
     T: Serialize,
 {

@@ -149,7 +149,7 @@ impl<'de> Deserializer<'de> {
 /// let bytes = std::fs::read("./output/data.dat").unwrap();
 /// let data_readed = from_bytes(&bytes).unwrap();
 /// ```
-pub fn from_bytes(bytes: &[u8]) -> Result<OwnedToken, Error> {
+pub fn decode(bytes: &[u8]) -> Result<OwnedToken, Error> {
     let reader = Reader::new(bytes);
     let mut deserializer = Deserializer::new(reader);
     deserializer.read_any()

@@ -1,6 +1,6 @@
 #![cfg(feature = "alloc")]
 
-use emblize::{core::token::TokenTag, deserialize, ser::serialize_to_alloc_vec};
+use emblize::{core::token::TokenTag, from_bytes, to_allocvec};
 use serde::{Deserialize, Serialize};
 
 const STRUCT_PREFIX: &[u8] = &[TokenTag::Struct as u8, 0x01, 0x00, 0x01, 0x76];
@@ -20,7 +20,7 @@ fn unsupported_serialize_char() {
     }
 
     let value = Root { v: 'a' };
-    let _ = serialize_to_alloc_vec(&value).unwrap();
+    let _ = to_allocvec(&value).unwrap();
 }
 
 #[test]
@@ -32,7 +32,7 @@ fn unsupported_serialize_none() {
     }
 
     let value = Root { v: None };
-    let _ = serialize_to_alloc_vec(&value).unwrap();
+    let _ = to_allocvec(&value).unwrap();
 }
 
 #[test]
@@ -44,13 +44,13 @@ fn unsupported_serialize_some() {
     }
 
     let value = Root { v: Some(0) };
-    let _ = serialize_to_alloc_vec(&value).unwrap();
+    let _ = to_allocvec(&value).unwrap();
 }
 
 #[test]
 #[should_panic]
 fn unsupported_serialize_unit() {
-    let _ = serialize_to_alloc_vec(&()).unwrap();
+    let _ = to_allocvec(&()).unwrap();
 }
 
 #[test]
@@ -65,7 +65,7 @@ fn unsupported_serialize_unit_struct() {
     }
 
     let value = Root { v: S };
-    let _ = serialize_to_alloc_vec(&value).unwrap();
+    let _ = to_allocvec(&value).unwrap();
 }
 
 #[test]
@@ -82,7 +82,7 @@ fn unsupported_serialize_tuple_variant() {
     }
 
     let value = Root { v: E::VariantA(0, 0) };
-    let _ = serialize_to_alloc_vec(&value).unwrap();
+    let _ = to_allocvec(&value).unwrap();
 }
 
 #[test]
@@ -95,7 +95,7 @@ fn unsupported_deserialize_char() {
     }
 
     let value = make_fake_value(&[0x00, 0x00]);
-    let _ = deserialize::<Root>(&value).unwrap();
+    let _ = from_bytes::<Root>(&value).unwrap();
 }
 
 #[test]
@@ -108,7 +108,7 @@ fn unsupported_deserialize_some() {
     }
 
     let value = make_fake_value(&[0x00, 0x00]);
-    let _ = deserialize::<Root>(&value).unwrap();
+    let _ = from_bytes::<Root>(&value).unwrap();
 }
 
 #[test]
@@ -121,14 +121,14 @@ fn unsupported_deserialize_bytes() {
     }
 
     let value = make_fake_value(&[0x00, 0x00]);
-    let _ = deserialize::<Root>(&value).unwrap();
+    let _ = from_bytes::<Root>(&value).unwrap();
 }
 
 #[test]
 #[should_panic]
 fn unsupported_deserialize_unit() {
     let value = make_fake_value(&[0x00, 0x00]);
-    let _ = deserialize::<()>(&value).unwrap();
+    let _ = from_bytes::<()>(&value).unwrap();
 }
 
 
@@ -145,7 +145,7 @@ fn unsupported_deserialize_unit_struct() {
     }
 
     let value = make_fake_value(&[0x00, 0x00]);
-    let _ = deserialize::<Root>(&value).unwrap();
+    let _ = from_bytes::<Root>(&value).unwrap();
 }
 
 #[test]
@@ -157,12 +157,12 @@ fn unsupported_serialize_tuple_t() {
     }
 
     let value = Root { v: (1, 2) };
-    let _ = serialize_to_alloc_vec(&value).unwrap();
+    let _ = to_allocvec(&value).unwrap();
 }
 
 #[test]
 #[should_panic]
 fn unsupported_deserialize_tuple_t() {
     let value = [TokenTag::I32Arr as u8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02];
-    let _ = deserialize::<(i32, u32)>(&value).unwrap();
+    let _ = from_bytes::<(i32, u32)>(&value).unwrap();
 }
