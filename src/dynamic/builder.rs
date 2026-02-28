@@ -1,3 +1,31 @@
+//! Dynamic structure builder utilities.
+//!
+//! This module provides [`StructBuilder`], a fluent builder API for
+//! constructing dynamic [`Token::Struct`] values at runtime.
+//!
+//! It is primarily intended for cases where the structure of the data
+//! is not known at compile time, or when building token trees
+//! programmatically (e.g. dynamic serialization scenarios).
+//!
+//! The builder allows incrementally adding fields, arrays, enums,
+//! and nested structures, producing a final [`Token`] via
+//! [`StructBuilder::build`].
+//!
+//! # Example
+//!
+//! ```rust
+//! use emblize::dynamic::StructBuilder;
+//!
+//! let token = StructBuilder::new_root()
+//!     .u8("flag", 1)
+//!     .f32_arr("values", &[3.0, 5.0])
+//!     .build();
+//! ```
+//!
+//! For creating standalone, unnamed primitive values,
+//! see the helper constructors in the same module
+//! (e.g. `u8(10)`, `bool(true)`).
+
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use alloc::borrow::Cow;
@@ -10,7 +38,7 @@ use crate::core::token::Token;
 ///
 /// Example:
 /// ```
-/// use emblize::*;
+/// use emblize::dynamic::StructBuilder;
 ///
 /// let token = StructBuilder::new_root()
 ///     .u8("id", 1)
@@ -25,7 +53,13 @@ pub struct StructBuilder<'a> {
 }
 
 impl<'a> StructBuilder<'a> {
-    /// Creates a new root `Builder`
+    /// Creates a new `StructBuilder` with the given `name`.
+    ///
+    /// The provided name will be associated with the resulting
+    /// [`Token::Struct`] when [`build`](Self::build) is called.
+    ///
+    /// Use this constructor when building a named struct field
+    /// inside another structure.
     pub fn new(name: &'a str) -> Self {
         Self {
             name: Some(name),
@@ -33,6 +67,12 @@ impl<'a> StructBuilder<'a> {
         }
     }
 
+    /// Creates a new root `StructBuilder` without a name.
+    ///
+    /// This is typically used for the top-level structure, where
+    /// no field name is required. The resulting [`Token::Struct`]
+    /// will contain `None` as its name when [`build`](Self::build)
+    /// is called.
     pub fn new_root() -> Self {
         Self {
             name: None,
@@ -64,7 +104,13 @@ impl<'a> StructBuilder<'a> {
         self
     }
 
-    /// Finalizes the root structure and returns it as a [`Token::Root`] value.
+    /// Consumes the builder and produces a [`Token::Struct`].
+    ///
+    /// This method finalizes the accumulated tokens and wraps them
+    /// into a `Token::Struct`, preserving the optional name provided
+    /// at construction time.
+    ///
+    /// After calling this method, the builder can no longer be used.
     pub fn build(self) -> Token<'a> {
         Token::Struct(self.name.map(Cow::Borrowed), self.tokens)
     }

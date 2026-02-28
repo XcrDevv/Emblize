@@ -1,3 +1,26 @@
+//! Helper constructors for fieldless [`Token`] values.
+//!
+//! This module provides small convenience functions for creating
+//! primitive [`Token`] variants without an associated field name.
+//!
+//! Instead of manually constructing tokens like:
+//!
+//! ```rust
+//! # use emblize::core::token::Token;
+//! let tk = Token::U32(None, 10);
+//! ```
+//!
+//! You can use the more ergonomic helpers:
+//!
+//! ```rust
+//! # use emblize::dynamic::factory::*;
+//! let tk = u32(10);
+//! ```
+//!
+//! All functions in this module create *unnamed* (`None`) tokens,
+//! which makes them especially useful when building standalone
+//! values, array elements, or enum payloads.
+
 use alloc::{borrow::Cow, boxed::Box};
 
 use crate::core::token::Token;

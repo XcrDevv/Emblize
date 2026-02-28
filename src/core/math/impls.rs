@@ -1,6 +1,5 @@
 use crate::core::math::*;
 
-
 impl Vec2 {
     pub fn new(x: f32, y: f32) -> Self {
         return Self { x, y };

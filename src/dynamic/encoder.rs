@@ -2,14 +2,14 @@ use alloc::vec::Vec;
 use alloc::borrow::Cow;
 
 use crate::{
-    core::{
-        utils::endian::BytesNum,
-    }, error::Error, core::token::{Token, TokenTag}, ser::serializer::{Serializer, SerializerBuf}
+    core::{token::{Token, TokenTag}, 
+    utils::endian::BytesNum}, error::Result, 
+    ser::serializer::{Serializer, SerializerBuf}
 };
 
 
 impl<B: SerializerBuf> Serializer<B> { 
-    pub fn write_any(&mut self, token: &Token) -> Result<(), Error> {
+    pub fn write_any(&mut self, token: &Token) -> Result<()> {
         self.found_token = TokenTag::from(token) as u8;
 
         match token {
@@ -92,14 +92,14 @@ impl<B: SerializerBuf> Serializer<B> {
         Ok(())
     }
 
-    fn write_string(&mut self, string: &str) -> Result<(), Error> {
+    fn write_string(&mut self, string: &str) -> Result<()> {
         let length = string.len() as u16;
         self.buf.push_bytes(&length.to_be_bytes())?;
         self.buf.push_bytes(string.as_bytes())?;
         Ok(())
     }
 
-    fn write_number<N: BytesNum>(&mut self, name: &Option<Cow<'_, str>>, value: N) -> Result<(), Error>
+    fn write_number<N: BytesNum>(&mut self, name: &Option<Cow<'_, str>>, value: N) -> Result<()>
     {
         if let Some(name) = name {
             self.write_string(&name)?;
@@ -109,7 +109,7 @@ impl<B: SerializerBuf> Serializer<B> {
         Ok(())
     }
 
-    fn write_seq<N: BytesNum>(&mut self, name: &Option<Cow<'_, str>>, values: &[N]) -> Result<(), Error> {
+    fn write_seq<N: BytesNum>(&mut self, name: &Option<Cow<'_, str>>, values: &[N]) -> Result<()> {
         if let Some(name) = name {
             self.write_string(&name)?;
         }
@@ -121,7 +121,7 @@ impl<B: SerializerBuf> Serializer<B> {
         Ok(())
     }
 
-    fn write_fixed_seq<N: BytesNum>(&mut self, name: &Option<Cow<'_, str>>, values: &[N]) -> Result<(), Error> {
+    fn write_fixed_seq<N: BytesNum>(&mut self, name: &Option<Cow<'_, str>>, values: &[N]) -> Result<()> {
         if let Some(name) = name {
             self.write_string(&name)?;
         }
@@ -133,21 +133,31 @@ impl<B: SerializerBuf> Serializer<B> {
     }
 }
 
-/// Serializes a `Token` into a binary format as a vector of bytes.
+/// Serializes a [`Token`] into its binary representation.
+///
+/// This function encodes the provided token into the format
+/// expected by the corresponding [`decode`] function and
+/// returns the resulting bytes.
+///
 /// # Errors
-/// Returns an error if the token cannot be written to an internal buffer.
-/// # Example
-/// ```
-/// use emblize::*;
+///
+/// Returns an [`Error`] if the token cannot be written to the
+/// internal buffer (for example, due to an unsupported value
+/// or serialization failure).
+///
+/// # Examples
+///
+/// ```rust
+/// use emblize::dynamic::{StructBuilder, encode};
 ///
 /// let data = StructBuilder::new_root()
 ///     .u8("flag", 1)
 ///     .f32_arr("data", &[3.0, 5.0])
 ///     .build();
 ///
-/// let content_bytes = as_bytes(&data);
+/// let content_bytes = encode(&data).unwrap();
 /// ```
-pub fn encode(tk: &Token) -> Result<Vec<u8>, Error> {
+pub fn encode(tk: &Token) -> Result<Vec<u8>> {
     let mut serializer = Serializer::new();
     serializer.write_any(tk)?;
     Ok(serializer.buf)

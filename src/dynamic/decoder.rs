@@ -8,11 +8,12 @@ use alloc::{
 };
 
 use crate::core::token::{OwnedToken, Token, TokenTag};
-use crate::de::deserializer::DeState;
-use crate::{core::{reader::Reader, utils::endian::BytesNum}, de::deserializer::Deserializer, error::Error};
+use crate::de::deserializer::{DeState, Deserializer};
+use crate::error::{Error, Result};
+use crate::core::{reader::Reader, utils::endian::BytesNum};
 
 impl<'de> Deserializer<'de> {
-    pub fn read_any(&mut self) -> Result<OwnedToken, Error> {
+    pub fn read_any(&mut self) -> Result<OwnedToken> {
         let name = if self.state == DeState::ReadingValue {
             None
         } else {
@@ -81,13 +82,13 @@ impl<'de> Deserializer<'de> {
         Ok(token)
     }
 
-    pub fn read_string(&mut self) -> Result<String, Error> {
+    pub fn read_string(&mut self) -> Result<String> {
         let len = self.input.read_number::<u16>()? as usize;
         let string = self.input.read_str_uft8(len)?;
         Ok(string.to_owned())
     }
 
-    fn read_seq<T: BytesNum + Clone>(&mut self) -> Result<Cow<'static, [T]>, Error> {
+    fn read_seq<T: BytesNum + Clone>(&mut self) -> Result<Cow<'static, [T]>> {
         let num_size = size_of::<T>();
         let len = self.input.read_number::<u16>()? as usize;
 
@@ -106,7 +107,7 @@ impl<'de> Deserializer<'de> {
     }
 
 
-    fn read_string_seq(&mut self) -> Result<Cow<'static, [Cow<'static, str>]>, Error> {
+    fn read_string_seq(&mut self) -> Result<Cow<'static, [Cow<'static, str>]>> {
         let len = self.input.read_number::<u16>()? as usize;
         let mut values: Vec<Cow<'_, str>> = Vec::with_capacity(len);
 
@@ -120,7 +121,7 @@ impl<'de> Deserializer<'de> {
 
     fn read_fixed_seq<T: BytesNum + Debug, const N: usize> (
         &mut self,
-    ) -> Result<[T; N], Error> {
+    ) -> Result<[T; N]> {
         let mut buf = vec![0; N * size_of::<f32>()];
         self.input.read_exact(&mut buf)?;
         let values: Vec<T> = buf
@@ -136,20 +137,37 @@ impl<'de> Deserializer<'de> {
     }
 }
 
-/// Reads a byte buffer and converts it into a `Token`.
+/// Deserializes a byte slice into an [`OwnedToken`].
 ///
-/// The bytes must follow the expected binary format.
+/// The input must follow the binary format expected by the
+/// internal [`Deserializer`]. The function reads from the
+/// provided buffer and attempts to reconstruct a dynamic
+/// token representation.
 ///
 /// # Errors
-/// Returns an [`std::io::Error`] if reading or parsing the bytes fails.
-/// # Example
-/// ```rust,ignore
-/// use emblize::*;
 ///
-/// let bytes = std::fs::read("./output/data.dat").unwrap();
-/// let data_readed = from_bytes(&bytes).unwrap();
+/// Returns an [`Error`] if:
+/// - The input data is malformed or incomplete.
+/// - An unexpected token type is encountered.
+/// - Any low-level read operation fails.
+///
+/// # Examples
+///
+/// ```rust
+/// use emblize::dynamic::decode;
+///
+/// // Example binary payload
+/// let bytes: [u8; 33] = [
+///     0xA0, 0x02, 0x00, 0x04, 0x66, 0x6C, 0x61, 0x67,
+///     0x02, 0x01, 0x00, 0x04, 0x64, 0x61, 0x74, 0x61,
+///     0x25, 0x00, 0x02, 0x40, 0x40, 0x00, 0x00, 0x40,
+///     0xA0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+///     0x00
+/// ];
+///
+/// let token = decode(&bytes).unwrap();
 /// ```
-pub fn decode(bytes: &[u8]) -> Result<OwnedToken, Error> {
+pub fn decode(bytes: &[u8]) -> Result<OwnedToken> {
     let reader = Reader::new(bytes);
     let mut deserializer = Deserializer::new(reader);
     deserializer.read_any()
