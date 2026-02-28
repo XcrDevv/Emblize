@@ -2,7 +2,7 @@ use crate::{
     de::deserializer::{DeState, Deserializer},
     error::{Error, Result},
     impl_deserialize_vec,
-    core::read_write::Reader,
+    core::reader::Reader,
     core::token::TokenTag,
     core::types::*,
 };

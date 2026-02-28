@@ -9,7 +9,7 @@ use alloc::{
 
 use crate::core::token::{OwnedToken, Token, TokenTag};
 use crate::de::deserializer::DeState;
-use crate::{core::{read_write::Reader, utils::endian::BytesNum}, de::deserializer::Deserializer, error::Error};
+use crate::{core::{reader::Reader, utils::endian::BytesNum}, de::deserializer::Deserializer, error::Error};
 
 impl<'de> Deserializer<'de> {
     pub fn read_any(&mut self) -> Result<OwnedToken, Error> {
