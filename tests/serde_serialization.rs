@@ -181,6 +181,24 @@ fn serialize_unit_variant() {
 }
 
 #[test]
+fn serializer_newtype_variant() {
+    #[derive(Serialize)]
+    enum E {
+        #[allow(dead_code)]
+        VariantA(u8),
+        VariantB(u8),
+    }
+
+    let value = E::VariantB(32);
+    let expected = vec![TokenTag::Enum as u8, 0x01, TokenTag::U8 as u8, 0x20];
+
+    assert_eq!(
+        to_allocvec(&value).unwrap(),
+        expected
+    )
+}
+
+#[test]
 fn serialize_struct_variant() {
     #[derive(Serialize)]
     enum E {
