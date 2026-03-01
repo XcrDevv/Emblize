@@ -102,7 +102,7 @@ type Name<'a> = Option<Cow<'a, str>>;
 ///
 /// The exact binary layout of the payload depends on the variant.
 #[cfg(feature = "alloc")]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Token<'a> {
     Bool(Name<'a>, bool),
     U8(Name<'a>, u8),
@@ -142,10 +142,6 @@ pub enum Token<'a> {
     Struct(Option<Cow<'a, str>>, Vec<Token<'a>>),
 }
 
-#[cfg(feature = "alloc")]
-pub type OwnedToken = Token<'static>;
-
-#[cfg(feature = "alloc")]
 #[cfg(feature = "alloc")]
 impl<'a> Token<'a> {
     pub fn name(&'a self) -> &'a str {

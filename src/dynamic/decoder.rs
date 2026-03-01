@@ -7,13 +7,13 @@ use alloc::{
     borrow::{ToOwned, Cow}
 };
 
-use crate::core::token::{OwnedToken, Token, TokenTag};
+use crate::core::token::{Token, TokenTag};
 use crate::de::deserializer::{DeState, Deserializer};
 use crate::error::{Error, Result};
 use crate::core::{reader::Reader, utils::endian::BytesNum};
 
 impl<'de> Deserializer<'de> {
-    pub fn read_any(&mut self) -> Result<OwnedToken> {
+    pub fn read_any(&mut self) -> Result<Token<'de>> {
         let name = if self.state == DeState::ReadingValue {
             None
         } else {
@@ -22,7 +22,7 @@ impl<'de> Deserializer<'de> {
 
         let tag = self.input.read_byte()?;
 
-        let token = match TokenTag::try_from(tag).map_err(|_| Error::UnknownDType(tag))? {
+        let token: Token<'de> = match TokenTag::try_from(tag).map_err(|_| Error::UnknownDType(tag))? {
             TokenTag::Bool => Token::Bool(name, self.input.read_byte()? != 0),
             TokenTag::U8 => Token::U8(name, self.input.read_number()?),
             TokenTag::U16 => Token::U16(name, self.input.read_number()?),
@@ -88,7 +88,7 @@ impl<'de> Deserializer<'de> {
         Ok(string.to_owned())
     }
 
-    fn read_seq<T: BytesNum + Clone>(&mut self) -> Result<Cow<'static, [T]>> {
+    fn read_seq<T: BytesNum + Clone>(&mut self) -> Result<Cow<'de, [T]>> {
         let num_size = size_of::<T>();
         let len = self.input.read_number::<u16>()? as usize;
 
@@ -107,7 +107,7 @@ impl<'de> Deserializer<'de> {
     }
 
 
-    fn read_string_seq(&mut self) -> Result<Cow<'static, [Cow<'static, str>]>> {
+    fn read_string_seq(&mut self) -> Result<Cow<'de, [Cow<'de, str>]>> {
         let len = self.input.read_number::<u16>()? as usize;
         let mut values: Vec<Cow<'_, str>> = Vec::with_capacity(len);
 
@@ -167,8 +167,8 @@ impl<'de> Deserializer<'de> {
 ///
 /// let token = decode(&bytes).unwrap();
 /// ```
-pub fn decode(bytes: &[u8]) -> Result<OwnedToken> {
+pub fn decode<'a>(bytes: &'a [u8]) -> Result<Token<'a>> {
     let reader = Reader::new(bytes);
-    let mut deserializer = Deserializer::new(reader);
+    let mut deserializer: Deserializer = Deserializer::new(reader);
     deserializer.read_any()
 }
