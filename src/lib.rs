@@ -44,12 +44,21 @@ extern crate alloc;
 #[cfg(feature = "alloc")]
 pub mod dynamic;
 
+#[cfg(feature = "frame")]
+pub mod frame;
+
 pub mod core;
 pub mod de;
 pub mod error;
 pub mod macros;
 pub mod ser;
 
-pub use ser::{to_allocvec, to_heaplessvec};
+#[cfg(feature = "alloc")]
+pub use ser::to_allocvec;
+
+pub use ser::to_heaplessvec;
 pub use de::{from_bytes};
 pub use core::types;
+
+#[cfg(feature = "frame")]
+pub use frame::frame_parser::FrameParser;
