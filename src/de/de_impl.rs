@@ -483,7 +483,7 @@ impl<'de, 'a> EnumAccess<'de> for Enum<'a, 'de> {
     {
         let index = self.de.input.read_byte()?;
         let value = seed.deserialize(
-            serde::de::value::U8Deserializer::<Error>::new(index)
+            serde::de::value::U8Deserializer::<Error>::new(index & 0x7F)
         )?;
         Ok((value, self))
     }

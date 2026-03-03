@@ -73,8 +73,8 @@ pub fn str<'a>(value: &'a str) -> Token<'a> {
     Token::Str(None, value.into())
 }
 
-pub fn enum_<'a>(variant_index: u8, value: Token<'a>) -> Token<'a> {
-    Token::Enum(None, variant_index, Box::new(value))
+pub fn enum_<'a>(variant_index: u8, value: Option<Token<'a>>) -> Token<'a> {
+    Token::Enum(None, variant_index, value.map(Box::new))
 }
 
 pub fn u8_arr<'a>(values: &'a[u8]) -> Token<'a> {

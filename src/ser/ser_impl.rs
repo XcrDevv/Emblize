@@ -260,8 +260,12 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
         _variant: &'static str,
     ) -> Result<Self::Ok> {
         self.buf.push_byte(TokenTag::Enum as u8)?;
-        self.buf.push_byte(u8::try_from(variant_index).map_err(|_| Error::IndexVariantExceeded)?)?;
-        Ok(())
+        if variant_index > 0x7F {
+            Err(Error::IndexVariantExceeded)
+        } else {
+            self.buf.push_byte(variant_index as u8)?;
+            Ok(())
+        }
     }
 
     fn serialize_newtype_struct<T>(

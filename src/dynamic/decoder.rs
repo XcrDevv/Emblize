@@ -39,9 +39,14 @@ impl<'de> Deserializer<'de> {
             TokenTag::Enum => {
                 self.state = DeState::ReadingValue;
 
-                let variant_index = self.input.read_number()?;
-                let token = Box::new(self.read_any().unwrap());
-                Token::Enum(name, variant_index, token)
+                let variant_index = self.input.read_number::<u8>()?;
+                if (variant_index & 0x80) != 0 {
+                    let token = Box::new(self.read_any().unwrap());
+                    Token::Enum(name, variant_index & 0x7F, Some(token))
+                } else {
+                    Token::Enum(name, variant_index & 0x7F, None)
+                }
+
             }
 
             TokenTag::Struct => {

@@ -117,7 +117,7 @@ pub enum Token<'a> {
     F64(Name<'a>, f64),
 
     Str(Name<'a>, Cow<'a, str>),
-    Enum(Name<'a>, u8, Box<Token<'a>>),
+    Enum(Name<'a>, u8, Option<Box<Token<'a>>>),
 
     EmptyArr(Name<'a>),
     U8Arr(Name<'a>, Cow<'a, [u8]>),

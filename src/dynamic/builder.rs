@@ -91,8 +91,8 @@ impl<'a> StructBuilder<'a> {
         self
     }
 
-    pub fn enum_(mut self, name: &'a str, variant_index: u8, token: Token<'a>) -> Self {
-        self.tokens.push(Token::Enum(Some(name.into()), variant_index, Box::new(token)));
+    pub fn enum_(mut self, name: &'a str, variant_index: u8, token: Option<Token<'a>>) -> Self {
+        self.tokens.push(Token::Enum(Some(name.into()), variant_index, token.map(Box::new)));
         self
     }
 
