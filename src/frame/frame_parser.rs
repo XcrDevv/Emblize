@@ -1,29 +1,53 @@
 // Todo: Add CRC
 
-pub struct FrameParser<'a, const C: usize> {
-    buf: [u8; C],
+pub struct FrameParser<'a, B: AsRef<[u8]> + AsMut<[u8]>> {
+    buf: B,
     head: usize,
     tail: usize,
     sync: &'a [u8],
 }
 
-impl<'a, const C: usize> FrameParser<'a, C> {
+#[cfg(not(feature = "alloc"))]
+/// Just if `FrameParser::<[u8; N]>::new(&[..])` is very ugly. Sorry
+pub type FrameParserArray<'a, const N: usize> = FrameParser<'a, [u8; N]>;
+
+#[cfg(not(feature = "alloc"))]
+impl<'a, const B: usize> FrameParser<'a, [u8; B]> {
     pub fn new(sync: &'a [u8]) -> Self {
         Self {
-            buf: [0; C],
+            buf: [0; B],
             head: 0,
             tail: 0,
-            sync
+            sync,
         }
     }
+}
 
+#[cfg(feature = "alloc")]
+impl<'a> FrameParser<'a, alloc::vec::Vec<u8>> {
+    pub fn new(capacity: usize, sync: &'a [u8]) -> Self {
+        use alloc::vec;
+
+        Self {
+            buf: vec![0; capacity],
+            head: 0,
+            tail: 0,
+            sync,
+        }
+    }
+}
+
+impl<'a, B> FrameParser<'a, B>
+where
+    B: AsRef<[u8]> + AsMut<[u8]>,
+{
     pub fn writable(&mut self) -> (&mut [u8], &mut [u8]) {
         let free = self.free_space();
         if free == 0 {
             return (&mut [], &mut []);
         }
         if self.tail >= self.head {
-            let (left, right) = self.buf.split_at_mut(self.tail);
+            let (left, right) = self.buf.as_mut().split_at_mut(self.tail);
             let first_len = right.len();
             let first_len = usize::min(first_len, free);
             let first = &mut right[..first_len];
@@ -35,37 +59,42 @@ impl<'a, const C: usize> FrameParser<'a, C> {
             };
             (first, second)
         } else {
-            let first = &mut self.buf[self.tail..self.head - 1];
+            let first = &mut self.buf.as_mut()[self.tail..self.head - 1];
             (first, &mut [])
         }
     }
 
     pub fn readable(&self) -> (&[u8], &[u8]) {
         if self.tail >= self.head {
-            (&self.buf[self.head..self.tail], &[])
+            (&self.buf.as_ref()[self.head..self.tail], &[])
         } else {
-            (&self.buf[self.head..], &self.buf[..self.tail])
+            (&self.buf.as_ref()[self.head..], &self.buf.as_ref()[..self.tail])
         }
     }
 
     pub fn advance(&mut self, n: usize) {
-        self.tail = (self.tail + n) % C;
+        let c = self.buf.as_ref().len();
+        self.tail = (self.tail + n) % c;
     }
 
     pub fn discard(&mut self, n: usize) {
-        self.head = (self.head + n) % C;
+        let c = self.buf.as_ref().len();
+        self.head = (self.head + n) % c;
     }
 
     pub fn len(&self) -> usize {
-        (self.tail + C - self.head) % C
+        let c = self.buf.as_ref().len();
+        (self.tail + c - self.head) % c
     }
 
     pub fn free_space(&self) -> usize {
-        C - 1 - self.len()
+        let c = self.buf.as_ref().len();
+        c - 1 - self.len()
     }
 
     pub fn at(&self, i: usize) -> u8 {
-        self.buf[(self.head + i) % C]
+        let c = self.buf.as_ref().len();
+        self.buf.as_ref()[(self.head + i) % c]
     }
 
     fn find_first_sync_byte(&self) -> Option<usize> {
