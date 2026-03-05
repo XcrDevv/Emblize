@@ -309,8 +309,12 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
     {
         self.state = SerState::WritingField;
         self.buf.push_byte(TokenTag::Enum as u8)?;
-        self.buf.push_byte(u8::try_from(variant_index).map_err(|_| Error::IndexVariantExceeded)?)?;
-        value.serialize(self)
+        if variant_index > 0x7F {
+            Err(Error::IndexVariantExceeded)
+        } else {
+            self.buf.push_byte(variant_index as u8 | 0x80)?;
+            value.serialize(self)
+        }
     }
 
     fn serialize_seq(
@@ -384,10 +388,14 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
         len: usize,
     ) -> Result<Self::SerializeStructVariant> {
         self.buf.push_byte(TokenTag::Enum as u8)?;
-        self.buf.push_byte(u8::try_from(variant_index).map_err(|_| Error::IndexVariantExceeded)?)?;
-        self.buf.push_byte(TokenTag::Struct as u8)?;
-        self.buf.push_byte(len as u8)?;
-        Ok(self)
+        if variant_index > 0x7F {
+            Err(Error::IndexVariantExceeded)
+        } else {
+            self.buf.push_byte(variant_index as u8 | 0x80)?;
+            self.buf.push_byte(TokenTag::Struct as u8)?;
+            self.buf.push_byte(len as u8)?;
+            Ok(self)
+        }
     }
 }
 
