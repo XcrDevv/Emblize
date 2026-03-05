@@ -37,16 +37,23 @@ impl<'de> Deserializer<'de> {
 
             TokenTag::Str => Token::Str(name, Cow::Owned(self.read_string()?)),
             TokenTag::Enum => {
+                let is_field = self.state == DeState::ReadingField;
                 self.state = DeState::ReadingValue;
 
                 let variant_index = self.input.read_number::<u8>()?;
-                if (variant_index & 0x80) != 0 {
+                let token = if (variant_index & 0x80) != 0 {
                     let token = Box::new(self.read_any().unwrap());
                     Token::Enum(name, variant_index & 0x7F, Some(token))
+
                 } else {
                     Token::Enum(name, variant_index & 0x7F, None)
+                };
+
+                if is_field {
+                    self.state = DeState::ReadingField
                 }
 
+                token
             }
 
             TokenTag::Struct => {
