@@ -179,7 +179,7 @@ fn deserialize_newtype_variant() {
         VariantB(u8),
     }
 
-    let value = vec![TokenTag::Enum as u8, 0x01, TokenTag::U8 as u8, 0x20];
+    let value = vec![TokenTag::Enum as u8, 0x81, TokenTag::U8 as u8, 0x20];
     let expected = E::VariantB(32);
 
     assert_eq!(

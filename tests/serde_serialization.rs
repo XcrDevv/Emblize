@@ -190,7 +190,7 @@ fn serializer_newtype_variant() {
     }
 
     let value = E::VariantB(32);
-    let expected = vec![TokenTag::Enum as u8, 0x01, TokenTag::U8 as u8, 0x20];
+    let expected = vec![TokenTag::Enum as u8, 0x81, TokenTag::U8 as u8, 0x20];
 
     assert_eq!(
         to_allocvec(&value).unwrap(),
@@ -208,7 +208,7 @@ fn serialize_struct_variant() {
     }
 
     let value = E::VariantB { v: true };
-    let expected = vec![TokenTag::Enum as u8, 0x01, TokenTag::Struct as u8, 0x01, 0x00, 0x01, 0x76, TokenTag::Bool as u8, 0x01];
+    let expected = vec![TokenTag::Enum as u8, 0x81, TokenTag::Struct as u8, 0x01, 0x00, 0x01, 0x76, TokenTag::Bool as u8, 0x01];
 
     assert_eq!(
         to_allocvec(&value).unwrap(),
