@@ -230,11 +230,17 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         unimplemented!()
     }
 
-    fn deserialize_option<V>(self, _visitor: V) -> Result<V::Value>
+    fn deserialize_option<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        Err(Error::DeUnsupported("Option<T>"))
+        TokenTag::Option.matches(self.input.read_byte()?)?;
+        if self.input.read_byte()? != 0x00 {
+            visitor.visit_some(self)
+        } else {
+            visitor.visit_none()
+        }
+
     }
 
     fn deserialize_unit<V>(self, _visitor: V) -> Result<V::Value>

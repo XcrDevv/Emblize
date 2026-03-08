@@ -46,6 +46,19 @@ impl<B: SerializerBuf> Serializer<B> {
                     self.buf.push_byte(*variant_index)?;
                 }
             }
+            Token::Option(name, value) => {
+                if let Some(name) = name {
+                    self.write_string(name)?;
+                }
+                self.buf.push_byte(TokenTag::from(token) as u8)?;
+
+                if let Some(value) = value {
+                    self.buf.push_byte(0x01)?;
+                    self.write_any(value)?;
+                } else {
+                    self.buf.push_byte(0x00)?;
+                }
+            }
 
             Token::Struct(name, fields) => {
                 if let Some(name) = name {

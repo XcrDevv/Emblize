@@ -232,14 +232,18 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
     }
 
     fn serialize_none(self) -> Result<Self::Ok> {
-        Err(Error::SerUnsupported("None"))
+        self.buf.push_byte(TokenTag::Option as u8)?;
+        self.buf.push_byte(0x00)?;
+        Ok(())
     }
 
-    fn serialize_some<T>(self, _value: &T) -> Result<Self::Ok>
+    fn serialize_some<T>(self, value: &T) -> Result<Self::Ok>
     where
         T: ?Sized + Serialize,
     {
-        Err(Error::SerUnsupported("Some"))
+        self.buf.push_byte(TokenTag::Option as u8)?;
+        self.buf.push_byte(0x01)?;
+        value.serialize(self)
     }
 
     fn serialize_unit(self) -> Result<Self::Ok> {

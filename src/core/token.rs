@@ -22,6 +22,7 @@ pub enum TokenTag {
 
     Str         = 0x10,
     Enum        = 0x11,
+    Option      = 0x12,
 
     EmptyArr    = 0x21,
     U8Arr       = 0x22,
@@ -75,7 +76,7 @@ macro_rules! impl_from_to_token_str {
 
 impl_from_to_token_str!(
     Bool, U8, U16, U32, U64, I8, I16, I32, I64, F32, F64, 
-    Str, Enum, 
+    Str, Enum, Option,
     Struct, EmptyArr, U8Arr, I32Arr, I64Arr, F32Arr, F64Arr, StrArr, 
     TimestampMillis, TimestampMicros, MillisSinceBoot, MicrosSinceBoot, DurationMillis, DurationMicros, 
     Vec2, Vec3, Vec4, Quat
@@ -118,6 +119,7 @@ pub enum Token<'a> {
 
     Str(Name<'a>, Cow<'a, str>),
     Enum(Name<'a>, u8, Option<Box<Token<'a>>>),
+    Option(Name<'a>, Option<Box<Token<'a>>>),
 
     EmptyArr(Name<'a>),
     U8Arr(Name<'a>, Cow<'a, [u8]>),
@@ -160,6 +162,7 @@ impl<'a> Token<'a> {
             | Token::Str(name, _)
             | Token::Enum(name, _, _)
             | Token::EmptyArr(name)
+            | Token::Option(name, _)
             | Token::U8Arr(name, _)
             | Token::I32Arr(name, _)
             | Token::I64Arr(name, _)
@@ -292,7 +295,7 @@ macro_rules! impl_from_token_to_tag {
 // Generates the `matches` implementation for all token types
 impl_matches_token_tag!(
     Bool, U8, U16, U32, U64, I8, I16, I32, I64, F32, F64, 
-    Str, Enum, 
+    Str, Enum, Option,
     Struct, EmptyArr, U8Arr, I32Arr, I64Arr, F32Arr, F64Arr, StrArr, 
     TimestampMillis, TimestampMicros, MillisSinceBoot, MicrosSinceBoot, DurationMillis, DurationMicros, 
     Vec2, Vec3, Vec4, Quat
@@ -302,7 +305,7 @@ impl_matches_token_tag!(
 #[cfg(feature = "alloc")]
 impl_from_token_to_tag!(
     Bool, U8, U16, U32, U64, I8, I16, I32, I64, F32, F64, 
-    Str, Enum, 
+    Str, Enum, Option,
     Struct, EmptyArr, U8Arr, I32Arr, I64Arr, F32Arr, F64Arr, StrArr, 
     TimestampMillis, TimestampMicros, MillisSinceBoot, MicrosSinceBoot, DurationMillis, DurationMicros, 
     Vec2, Vec3, Vec4, Quat
