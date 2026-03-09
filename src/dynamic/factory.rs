@@ -77,6 +77,14 @@ pub fn enum_<'a>(variant_index: u8, value: Option<Token<'a>>) -> Token<'a> {
     Token::Enum(None, variant_index, value.map(Box::new))
 }
 
+pub fn option_some<'a>(value: Token<'a>) -> Token<'a> {
+    Token::Option(None, Some(Box::new(value)))
+}
+
+pub fn option_none<'a>() -> Token<'a> {
+    Token::Option(None, None)
+}
+
 pub fn u8_arr<'a>(values: &'a[u8]) -> Token<'a> {
     Token::U8Arr(None, values.into())
 }
