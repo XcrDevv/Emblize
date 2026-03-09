@@ -25,30 +25,6 @@ fn unsupported_serialize_char() {
 
 #[test]
 #[should_panic]
-fn unsupported_serialize_none() {
-    #[derive(Serialize)]
-    struct Root {
-        v: Option<u8>
-    }
-
-    let value = Root { v: None };
-    let _ = to_allocvec(&value).unwrap();
-}
-
-#[test]
-#[should_panic]
-fn unsupported_serialize_some() {
-    #[derive(Serialize)]
-    struct Root {
-        v: Option<u8>
-    }
-
-    let value = Root { v: Some(0) };
-    let _ = to_allocvec(&value).unwrap();
-}
-
-#[test]
-#[should_panic]
 fn unsupported_serialize_unit() {
     let _ = to_allocvec(&()).unwrap();
 }
@@ -92,19 +68,6 @@ fn unsupported_deserialize_char() {
     struct Root {
         #[allow(dead_code)]
         v: char
-    }
-
-    let value = make_fake_value(&[0x00, 0x00]);
-    let _ = from_bytes::<Root>(&value).unwrap();
-}
-
-#[test]
-#[should_panic]
-fn unsupported_deserialize_some() {
-    #[derive(Deserialize)]
-    struct Root {
-        #[allow(dead_code)]
-        v: Option<u8>
     }
 
     let value = make_fake_value(&[0x00, 0x00]);
