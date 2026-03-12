@@ -217,6 +217,39 @@ fn serialize_struct_variant() {
 }
 
 #[test]
+fn serialize_some() {
+    let value = Some(true);
+    let expected = vec![TokenTag::Some as u8, TokenTag::Bool as u8, 0x01];
+
+    assert_eq!(
+        to_allocvec(&value).unwrap(),
+        expected
+    )
+}
+
+#[test]
+fn serialize_some_nested() {
+    let value = Some(Some(true));
+    let expected = vec![TokenTag::Some as u8, TokenTag::Some as u8, TokenTag::Bool as u8, 0x01];
+
+    assert_eq!(
+        to_allocvec(&value).unwrap(),
+        expected
+    )
+}
+
+#[test]
+fn serialize_none() {
+    let value: Option<bool> = None;
+    let expected = vec![TokenTag::None as u8];
+
+    assert_eq!(
+        to_allocvec(&value).unwrap(),
+        expected
+    )
+}
+
+#[test]
 fn serialize_vec2() {
     let value = Vec2::new(0.0, 1.0);
     let expected = vec![TokenTag::Vec2 as u8,

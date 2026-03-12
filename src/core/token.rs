@@ -24,7 +24,6 @@ pub enum TokenTag {
     Enum        = 0x11,
     Some        = 0x12,
     None        = 0x13,
-    // Option      = 0x12,
 
     EmptyArr    = 0x21,
     U8Arr       = 0x22,
@@ -123,8 +122,6 @@ pub enum Token<'a> {
     Enum(Name<'a>, u8, Option<Box<Token<'a>>>),
     Some(Name<'a>, Box<Token<'a>>),
     None(Name<'a>),
-
-    // Option(Name<'a>, Option<Box<Token<'a>>>),
 
     EmptyArr(Name<'a>),
     U8Arr(Name<'a>, Cow<'a, [u8]>),

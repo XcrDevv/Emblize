@@ -189,7 +189,7 @@ fn deserialize_newtype_variant() {
 }
 
 #[test]
-fn serialize_struct_variant() {
+fn deserialize_struct_variant() {
     #[derive(Debug, Deserialize, PartialEq, Eq)]
     enum E {
         #[allow(dead_code)]
@@ -202,6 +202,39 @@ fn serialize_struct_variant() {
 
     assert_eq!(
         from_bytes::<E>(&value).unwrap(),
+        expected
+    )
+}
+
+#[test]
+fn deserialize_some() {
+    let value = vec![TokenTag::Some as u8, TokenTag::Bool as u8, 0x01];
+    let expected = Some(true);
+
+    assert_eq!(
+        from_bytes::<Option<bool>>(&value).unwrap(),
+        expected
+    )
+}
+
+#[test]
+fn deserialize_some_nested() {
+    let value = vec![TokenTag::Some as u8, TokenTag::Some as u8, TokenTag::Bool as u8, 0x01];
+    let expected = Some(Some(true));
+
+    assert_eq!(
+        from_bytes::<Option<Option<bool>>>(&value).unwrap(),
+        expected
+    )
+}
+
+#[test]
+fn deserialize_none() {
+    let value = vec![TokenTag::None as u8];
+    let expected = None;
+
+    assert_eq!(
+        from_bytes::<Option<bool>>(&value).unwrap(),
         expected
     )
 }
