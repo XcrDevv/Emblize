@@ -232,8 +232,7 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
     }
 
     fn serialize_none(self) -> Result<Self::Ok> {
-        self.buf.push_byte(TokenTag::Option as u8)?;
-        self.buf.push_byte(0x00)?;
+        self.buf.push_byte(TokenTag::None as u8)?;
         Ok(())
     }
 
@@ -241,8 +240,7 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
     where
         T: ?Sized + Serialize,
     {
-        self.buf.push_byte(TokenTag::Option as u8)?;
-        self.buf.push_byte(0x01)?;
+        self.buf.push_byte(TokenTag::Some as u8)?;
         value.serialize(self)
     }
 

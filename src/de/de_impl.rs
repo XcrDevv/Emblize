@@ -6,6 +6,7 @@ use crate::{
     core::token::TokenTag,
     core::types::*,
 };
+use num_enum::TryFromPrimitive;
 use serde::de::{self, EnumAccess, MapAccess, SeqAccess, VariantAccess};
 
 impl<'de> Deserializer<'de> {
@@ -234,13 +235,15 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: de::Visitor<'de>,
     {
-        TokenTag::Option.matches(self.input.read_byte()?)?;
-        if self.input.read_byte()? != 0x00 {
-            visitor.visit_some(self)
-        } else {
-            visitor.visit_none()
+        match TokenTag::try_from_primitive(self.input.read_byte()?).map_err(|_| Error::InvalidToken)? {
+            TokenTag::Some => {
+                visitor.visit_some(self)
+            },
+            TokenTag::None => {
+                visitor.visit_none()
+            },
+            _ => Err(Error::ExpectedType("Some or None"))
         }
-
     }
 
     fn deserialize_unit<V>(self, _visitor: V) -> Result<V::Value>

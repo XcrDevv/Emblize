@@ -55,23 +55,27 @@ impl<'de> Deserializer<'de> {
 
                 token
             }
-            TokenTag::Option => {
+            TokenTag::Some => {
                 let is_field = self.state == DeState::ReadingField;
                 self.state = DeState::ReadingValue;
 
-                let is_some = !(self.input.read_byte()? == 0x00);
-                let token = if is_some {
-                    let token = Box::new(self.read_any().unwrap());
-                    Token::Option(name, Some(token))
-                } else {
-                    Token::Option(name, None)
-                };
-
+                let token = Box::new(self.read_any().unwrap());
+                
                 if is_field {
                     self.state = DeState::ReadingField;
                 }
 
-                token
+                Token::Some(name, token)
+            }
+            TokenTag::None => {
+                let is_field = self.state == DeState::ReadingField;
+                self.state = DeState::ReadingValue;
+
+                if is_field {
+                    self.state = DeState::ReadingField;
+                }
+                
+                Token::None(name)
             }
 
             TokenTag::Struct => {
