@@ -4,6 +4,8 @@ use emblize::dynamic::{encode, decode, StructBuilder, factory::*};
 use emblize::core::token::Token;
 use emblize::types::*;
 
+// TODO: Add token tests for Some/None types
+
 #[test]
 fn build_tokens() {
     let token = StructBuilder::new_root()
