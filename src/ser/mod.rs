@@ -79,7 +79,7 @@ where
 #[cfg(feature = "alloc")]
 pub fn to_allocvec<T>(value: &T) -> Result<alloc::vec::Vec<u8>>
 where
-    T: Serialize,
+    T: Serialize + ?Sized,
 {
     serialize(value)
 }

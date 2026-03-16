@@ -163,7 +163,7 @@ macro_rules! impl_deserialize_vec {
                     where
                         D: serde::Deserializer<'de>,
                     {
-                        deserializer.deserialize_seq(self)
+                        deserializer.deserialize_tuple(LEN, self)
                     }
 
                     fn visit_seq<A>(self, mut seq: A) -> core::result::Result<Self::Value, A::Error>
@@ -178,12 +178,21 @@ macro_rules! impl_deserialize_vec {
                                 .next_element()?
                                 .ok_or_else(|| serde::de::Error::invalid_length(i, &self))?;
                         )+
+
                         Ok($VecN { $( $field ),+ })
                     }
                 }
+
+                const LEN: usize = impl_deserialize_vec!(@count $( $field ),+);
 
                 deserializer.deserialize_newtype_struct(stringify!($VecN), V)
             }
         }
     };
+
+    (@count $($field:ident),+) => {
+        <[()]>::len(&[$(impl_deserialize_vec!(@replace $field)),+])
+    };
+
+    (@replace $field:ident) => { () };
 }

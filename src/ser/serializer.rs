@@ -1,22 +1,22 @@
-use crate::{error::Result};
+use crate::{core::token::TokenTag, error::{Error, Result}};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum SerState {
-    WritingField,
-    WrittingSeq(u16),
-    WrittingElement(u8),
-    WrittingFixedSeq,
-    WrittingTime,
+    WriteTypedValue,
+    WriteUntypedValue,
+    WriteSeqHeader,
+    WriteVecHeader,
+    WriteUntypedChecked(TokenTag),
 }
 
 impl SerState {
     pub fn as_str(&self) -> &'static str {
         match self {
-            SerState::WritingField => "WritingField",
-            SerState::WrittingSeq(_) => "WrittingSeq",
-            SerState::WrittingElement(_) => "WrittingElement",
-            SerState::WrittingFixedSeq => "WrittingFixedSeq",
-            SerState::WrittingTime => "WrittingTime",
+            SerState::WriteTypedValue => "WriteTypedValue",
+            SerState::WriteUntypedValue => "WriteUntypedValue",
+            SerState::WriteSeqHeader => "WriteSeqHeader",
+            SerState::WriteVecHeader => "WriteVecHeader",
+            SerState::WriteUntypedChecked(_) => "WriteUntypedChecked",
         }
     }
 }
@@ -32,7 +32,7 @@ impl<B: SerializerBuf> Serializer<B> {
     pub fn new() -> Self{
         Self {
             buf: B::new(),
-            state: SerState::WritingField,
+            state: SerState::WriteTypedValue,
             found_token: 0,
         }
     }

@@ -26,12 +26,8 @@ pub enum TokenTag {
     None        = 0x13,
 
     EmptyArr    = 0x21,
-    U8Arr       = 0x22,
-    I32Arr      = 0x23,
-    I64Arr      = 0x24,
-    F32Arr      = 0x25,
-    F64Arr      = 0x26,
-    StrArr      = 0x27,
+    Bytes       = 0x22,
+    Array       = 0x23,
 
     TimestampMillis     = 0x30,
     TimestampMicros     = 0x31,
@@ -78,7 +74,7 @@ macro_rules! impl_from_to_token_str {
 impl_from_to_token_str!(
     Bool, U8, U16, U32, U64, I8, I16, I32, I64, F32, F64, 
     Str, Enum, Some, None,
-    Struct, EmptyArr, U8Arr, I32Arr, I64Arr, F32Arr, F64Arr, StrArr, 
+    Struct, EmptyArr, Array, Bytes,
     TimestampMillis, TimestampMicros, MillisSinceBoot, MicrosSinceBoot, DurationMillis, DurationMicros, 
     Vec2, Vec3, Vec4, Quat
 );
@@ -124,12 +120,8 @@ pub enum Token<'a> {
     None(Name<'a>),
 
     EmptyArr(Name<'a>),
-    U8Arr(Name<'a>, Cow<'a, [u8]>),
-    I32Arr(Name<'a>, Cow<'a, [i32]>),
-    I64Arr(Name<'a>, Cow<'a, [i64]>),
-    F32Arr(Name<'a>, Cow<'a, [f32]>),
-    F64Arr(Name<'a>, Cow<'a, [f64]>),
-    StrArr(Name<'a>, Cow<'a, [Cow<'a, str>]>),
+    Bytes(Name<'a>, Cow<'a, [u8]>),
+    Array(Name<'a>, TokenTag, Vec<Token<'a>>),
 
     TimestampMillis(Name<'a>, u64),
     TimestampMicros(Name<'a>, u64),
@@ -164,14 +156,10 @@ impl<'a> Token<'a> {
             | Token::Str(name, _)
             | Token::Enum(name, _, _)
             | Token::EmptyArr(name)
+            | Token::Array(name, _, _)
+            | Token::Bytes(name, _)
             | Token::Some(name, _)
             | Token::None(name)
-            | Token::U8Arr(name, _)
-            | Token::I32Arr(name, _)
-            | Token::I64Arr(name, _)
-            | Token::F32Arr(name, _)
-            | Token::F64Arr(name, _)
-            | Token::StrArr(name, _)
             | Token::TimestampMillis(name, _)
             | Token::TimestampMicros(name, _)
             | Token::MillisSinceBoot(name, _)
@@ -299,7 +287,7 @@ macro_rules! impl_from_token_to_tag {
 impl_matches_token_tag!(
     Bool, U8, U16, U32, U64, I8, I16, I32, I64, F32, F64, 
     Str, Enum, Some, None,
-    Struct, EmptyArr, U8Arr, I32Arr, I64Arr, F32Arr, F64Arr, StrArr, 
+    Struct, EmptyArr, Array, Bytes,
     TimestampMillis, TimestampMicros, MillisSinceBoot, MicrosSinceBoot, DurationMillis, DurationMicros, 
     Vec2, Vec3, Vec4, Quat
 );
@@ -309,7 +297,7 @@ impl_matches_token_tag!(
 impl_from_token_to_tag!(
     Bool, U8, U16, U32, U64, I8, I16, I32, I64, F32, F64, 
     Str, Enum, Some, None,
-    Struct, EmptyArr, U8Arr, I32Arr, I64Arr, F32Arr, F64Arr, StrArr, 
+    Struct, EmptyArr, Array, Bytes,
     TimestampMillis, TimestampMicros, MillisSinceBoot, MicrosSinceBoot, DurationMillis, DurationMicros, 
     Vec2, Vec3, Vec4, Quat
 );

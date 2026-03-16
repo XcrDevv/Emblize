@@ -1,12 +1,10 @@
 use crate::core::reader::Reader;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum DeState {
-    ReadingValue,
-    ReadingField,
-    ReadingSeq,
-    ReadingFixedSeq(usize),
-    ReadingTime,
+    ReadUntypedValue,
+    ReadTypedValue,
+    ReadingSeq(Option<u8>),
 }
 
 pub struct Deserializer<'de> {
@@ -19,7 +17,7 @@ impl<'de> Deserializer<'de> {
         Self {
             input,
 
-            state: DeState::ReadingValue,
+            state: DeState::ReadUntypedValue,
         }
     }
 }

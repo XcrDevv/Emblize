@@ -1,10 +1,5 @@
 use crate::{
-    de::deserializer::{DeState, Deserializer},
-    error::{Error, Result},
-    impl_deserialize_vec,
-    core::reader::Reader,
-    core::token::TokenTag,
-    core::types::*,
+    core::{reader::Reader, token::TokenTag, types::*}, de::deserializer::{DeState, Deserializer}, error::{Error, Result}, impl_deserialize_vec
 };
 use num_enum::TryFromPrimitive;
 use serde::de::{self, EnumAccess, MapAccess, SeqAccess, VariantAccess};
@@ -13,7 +8,7 @@ impl<'de> Deserializer<'de> {
     pub fn from_bytes(input: &'de [u8]) -> Self {
         Deserializer {
             input: Reader::new(input),
-            state: DeState::ReadingField,
+            state: DeState::ReadTypedValue,
         }
     }
 }
@@ -41,6 +36,22 @@ impl<'de> Deserializer<'de> {
         let bytes = self.input.take_bytes(len)?;
         core::str::from_utf8(bytes).map_err(|_| Error::NoUTF8)
     }
+
+    fn expected_tag(&mut self, token_tag: TokenTag) -> Result<()> {
+        match self.state {
+            DeState::ReadTypedValue => {
+                token_tag.matches(self.input.read_byte()?)?;
+            }
+            DeState::ReadingSeq(ref mut arr_type) => {
+                if let Some(arr_type) = arr_type.take() {
+                    token_tag.matches(arr_type)?;
+                }
+            }
+            _ => {}
+        }
+
+        Ok(())
+    }
 }
 
 impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
@@ -50,17 +61,14 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: de::Visitor<'de>,
     {
-        todo!()
+        unimplemented!()
     }
 
     fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        if self.state == DeState::ReadingField {
-            TokenTag::Bool.matches(self.input.read_byte()?)?;
-        }
-
+        self.expected_tag(TokenTag::Bool)?;
         visitor.visit_bool(self.read_bool()?)
     }
 
@@ -68,110 +76,90 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: de::Visitor<'de>,
     {
-        if self.state == DeState::ReadingField {
-            TokenTag::I8.matches(self.input.read_byte()?)?;
-        }
-
-        visitor.visit_i8(self.input.read_number()?)
+        self.expected_tag(TokenTag::I8)?;
+        let v = self.input.read_number()?;
+        visitor.visit_i8(v)
     }
 
     fn deserialize_i16<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        if self.state == DeState::ReadingField {
-            TokenTag::I16.matches(self.input.read_byte()?)?;
-        }
-
-        visitor.visit_i16(self.input.read_number()?)
+        self.expected_tag(TokenTag::I16)?;
+        let v = self.input.read_number()?;
+        visitor.visit_i16(v)
     }
 
     fn deserialize_i32<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        if self.state == DeState::ReadingField {
-            TokenTag::I32.matches(self.input.read_byte()?)?;
-        }
-
-        visitor.visit_i32(self.input.read_number()?)
+        self.expected_tag(TokenTag::I32)?;
+        let v = self.input.read_number()?;
+        visitor.visit_i32(v)
     }
 
     fn deserialize_i64<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        if self.state == DeState::ReadingField {
-            TokenTag::I64.matches(self.input.read_byte()?)?;
-        }
-
-        visitor.visit_i64(self.input.read_number()?)
+        self.expected_tag(TokenTag::I64)?;
+        let v = self.input.read_number()?;
+        visitor.visit_i64(v)
     }
 
     fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        if self.state == DeState::ReadingField {
-            TokenTag::U8.matches(self.input.read_byte()?)?;
-        }
-
-        visitor.visit_u8(self.input.read_number()?)
+        self.expected_tag(TokenTag::U8)?;
+        let v = self.input.read_number()?;
+        visitor.visit_u8(v)
     }
 
     fn deserialize_u16<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        if self.state == DeState::ReadingField {
-            TokenTag::U16.matches(self.input.read_byte()?)?;
-        }
-
-        visitor.visit_u16(self.input.read_number()?)
+        self.expected_tag(TokenTag::U16)?;   
+        let v = self.input.read_number()?;
+        visitor.visit_u16(v)
     }
 
     fn deserialize_u32<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        if self.state == DeState::ReadingField {
-            TokenTag::U32.matches(self.input.read_byte()?)?;
-        }
-
-        visitor.visit_u32(self.input.read_number()?)
+        self.expected_tag(TokenTag::U32)?;
+        let v = self.input.read_number()?;
+        visitor.visit_u32(v)
     }
 
     fn deserialize_u64<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        if self.state == DeState::ReadingField {
-            TokenTag::U64.matches(self.input.read_byte()?)?;
-        }
-
-        visitor.visit_u64(self.input.read_number()?)
+        self.expected_tag(TokenTag::U64)?;
+        let v = self.input.read_number()?;
+        visitor.visit_u64(v)
     }
 
     fn deserialize_f32<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        if self.state == DeState::ReadingField {
-            TokenTag::F32.matches(self.input.read_byte()?)?;
-        }
-
-        visitor.visit_f32(self.input.read_number()?)
+        self.expected_tag(TokenTag::F32)?;
+        let v = self.input.read_number()?;
+        visitor.visit_f32(v)
     }
 
     fn deserialize_f64<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        if self.state == DeState::ReadingField {
-            TokenTag::F64.matches(self.input.read_byte()?)?;
-        }
-
-        visitor.visit_f64(self.input.read_number()?)
+        self.expected_tag(TokenTag::F64)?;
+        let v = self.input.read_number()?;
+        visitor.visit_f64(v)
     }
 
     fn deserialize_char<V>(self, _visitor: V) -> Result<V::Value>
@@ -185,9 +173,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: de::Visitor<'de>,
     {
-        if self.state == DeState::ReadingField {
-            TokenTag::Str.matches(self.input.read_byte()?)?;
-        }
+        self.expected_tag(TokenTag::Str)?;
         let s = self.read_str()?;
         visitor.visit_borrowed_str(s)
     }
@@ -197,9 +183,6 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: de::Visitor<'de>,
     {
-        if self.state == DeState::ReadingField {
-            TokenTag::Str.matches(self.input.read_byte()?)?;
-        }
         self.deserialize_str(visitor)
     }
 
@@ -208,34 +191,50 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: de::Visitor<'de>,
     {
-        if self.state == DeState::ReadingField {
-            TokenTag::Str.matches(self.input.read_byte()?)?;
-        }
+        self.expected_tag(TokenTag::Str)?;
         visitor.visit_string(self.read_string()?)
     }
 
-    fn deserialize_bytes<V>(self, _visitor: V) -> Result<V::Value>
+    fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        Err(Error::DeUnsupported("&[u8]"))
+        self.expected_tag(TokenTag::Bytes)?;
+        let len = self.input.read_number::<u16>()? as usize;
+        let bytes = self.input.take_bytes(len)?;
+        visitor.visit_borrowed_bytes(bytes)
     }
 
-    fn deserialize_byte_buf<V>(self, _visitor: V) -> Result<V::Value>
+    fn deserialize_byte_buf<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        // TODO
-        // TODO
-        // TODO
-        unimplemented!()
+        self.deserialize_bytes(visitor)
     }
 
     fn deserialize_option<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        match TokenTag::try_from_primitive(self.input.read_byte()?).map_err(|_| Error::InvalidToken)? {
+        let token = self.input.read_byte()?;
+        
+        match self.state {
+            DeState::ReadTypedValue => {
+                if TokenTag::Some as u8 != token && TokenTag::None as u8 != token {
+                    return Err(Error::ExpectedType("Some or None"))
+                }
+            }
+            DeState::ReadingSeq(ref mut arr_type) => {
+                if let Some(arr_type) = arr_type.take() {
+                    if TokenTag::Some as u8 != arr_type && TokenTag::None as u8 != arr_type {
+                        return Err(Error::ExpectedType("Some or None"))
+                    }
+                }
+            }
+            _ => {}
+        }
+
+        match TokenTag::try_from_primitive(token).map_err(|_| Error::InvalidToken)? {
             TokenTag::Some => {
                 visitor.visit_some(self)
             },
@@ -274,46 +273,46 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         match name {
             "Vec2" => {
-                TokenTag::Vec2.matches(self.input.read_byte()?)?;
-                self.state = DeState::ReadingFixedSeq(2);
+                self.expected_tag(TokenTag::Vec2)?;
+                self.state = DeState::ReadUntypedValue
             }
             "Vec3" => {
-                TokenTag::Vec3.matches(self.input.read_byte()?)?;
-                self.state = DeState::ReadingFixedSeq(3);
+                self.expected_tag(TokenTag::Vec3)?;
+                self.state = DeState::ReadUntypedValue
             }
             "Vec4" => {
-                TokenTag::Vec4.matches(self.input.read_byte()?)?;
-                self.state = DeState::ReadingFixedSeq(4);
+                self.expected_tag(TokenTag::Vec4)?;
+                self.state = DeState::ReadUntypedValue
             }
             "Quat" => {
-                TokenTag::Quat.matches(self.input.read_byte()?)?;
-                self.state = DeState::ReadingFixedSeq(4);
+                self.expected_tag(TokenTag::Quat)?;
+                self.state = DeState::ReadUntypedValue
             }
             "TimestampMillis" => {
-                TokenTag::TimestampMillis.matches(self.input.read_byte()?)?;
-                self.state = DeState::ReadingTime;
+                self.expected_tag(TokenTag::TimestampMillis)?;
+                self.state = DeState::ReadUntypedValue;
             }
             "TimestampMicros" => {
-                TokenTag::TimestampMicros.matches(self.input.read_byte()?)?;
-                self.state = DeState::ReadingTime;
+                self.expected_tag(TokenTag::TimestampMicros)?;
+                self.state = DeState::ReadUntypedValue;
             }
             "MillisSinceBoot" => {
-                TokenTag::MillisSinceBoot.matches(self.input.read_byte()?)?;
-                self.state = DeState::ReadingTime;
+                self.expected_tag(TokenTag::MillisSinceBoot)?;
+                self.state = DeState::ReadUntypedValue;
             }
             "MicrosSinceBoot" => {
-                TokenTag::MicrosSinceBoot.matches(self.input.read_byte()?)?;
-                self.state = DeState::ReadingTime;
+                self.expected_tag(TokenTag::MicrosSinceBoot)?;
+                self.state = DeState::ReadUntypedValue;
             }
             "DurationMillis" => {
-                TokenTag::DurationMillis.matches(self.input.read_byte()?)?;
-                self.state = DeState::ReadingTime;
+                self.expected_tag(TokenTag::DurationMillis)?;
+                self.state = DeState::ReadUntypedValue;
             }
             "DurationMicros" => {
-                TokenTag::DurationMicros.matches(self.input.read_byte()?)?;
-                self.state = DeState::ReadingTime;
+                self.expected_tag(TokenTag::DurationMicros)?;
+                self.state = DeState::ReadUntypedValue;
             }
-            _ => unreachable!("{}", name),
+            _ => unreachable!(),
         }
 
         visitor.visit_newtype_struct(self)
@@ -324,13 +323,21 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: de::Visitor<'de>,
     {
         let len = match self.state {
-            DeState::ReadingFixedSeq(len) => len,
+            DeState::ReadingSeq(_) => {
+                let len = self.input.read_number::<u16>()? as usize;
+                let arr_type = self.input.read_byte()?;
+                self.state = DeState::ReadingSeq(Some(arr_type));
+                len
+            }
             _ => {
-                self.state = DeState::ReadingSeq;
-                if self.input.read_byte()? == TokenTag::EmptyArr as u8 {
+                let tag = self.input.read_byte()?;
+                if tag == TokenTag::EmptyArr as u8 {
                     0
                 } else {
-                    self.input.read_number::<u16>()? as usize
+                    let len = self.input.read_number::<u16>()? as usize;
+                    let arr_type = self.input.read_byte()?;
+                    self.state = DeState::ReadingSeq(Some(arr_type));
+                    len
                 }
             }
         };
@@ -345,18 +352,9 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: de::Visitor<'de>,
     {
-        self.input.read_byte()?;
-        let len = self.input.read_number::<u16>()? as usize;
-
-        if len != tup_len {
-            return Err(Error::MissmatchLength { expected: tup_len, found: len });
-        }
-
-        self.state = DeState::ReadingSeq;
-
         visitor.visit_seq(SizedCollection {
             de: self,
-            remaining: len,
+            remaining: tup_len,
         })
     }
 
@@ -372,16 +370,11 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         self.deserialize_tuple(len, visitor)
     }
 
-    fn deserialize_map<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_map<V>(self, _visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        let field_count = self.input.read_byte()?;
-
-        visitor.visit_map(SizedCollection {
-            de: self,
-            remaining: field_count as usize,
-        })
+        unimplemented!("Maps deserialization hasn't yet been implemented");
     }
 
     fn deserialize_struct<V>(
@@ -393,11 +386,12 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: de::Visitor<'de>,
     {
-        let tag = self.input.read_byte()?;
-
-        TokenTag::Struct.matches(tag)?;
-
-        self.deserialize_map(visitor)
+        self.expected_tag(TokenTag::Struct)?; 
+        let field_count = self.input.read_byte()?;
+        visitor.visit_map(SizedCollection {
+            de: self,
+            remaining: field_count as usize,
+        })
     }
 
     fn deserialize_enum<V>(
@@ -409,7 +403,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: de::Visitor<'de>,
     {
-        TokenTag::Enum.matches(self.input.read_byte()?)?;
+        self.expected_tag(TokenTag::Enum)?;
         visitor.visit_enum(Enum { de: self })
     }
 
@@ -441,7 +435,7 @@ impl<'de, 'a> SeqAccess<'de> for SizedCollection<'a, 'de> {
         T: de::DeserializeSeed<'de>,
     {
         if self.remaining == 0 {
-            self.de.state = DeState::ReadingField;
+            self.de.state = DeState::ReadTypedValue;
             return Ok(None);
         }
 
@@ -453,12 +447,11 @@ impl<'de, 'a> SeqAccess<'de> for SizedCollection<'a, 'de> {
 impl<'de, 'a> MapAccess<'de> for SizedCollection<'a, 'de> {
     type Error = Error;
 
-    fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>>
+     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>>
     where
         K: de::DeserializeSeed<'de>,
     {
         if self.remaining == 0 {
-            self.de.state = DeState::ReadingField;
             return Ok(None);
         }
 
@@ -466,11 +459,16 @@ impl<'de, 'a> MapAccess<'de> for SizedCollection<'a, 'de> {
         seed.deserialize(&mut *self.de).map(Some)
     }
 
+
     fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value>
     where
         V: de::DeserializeSeed<'de>,
     {
-        seed.deserialize(&mut *self.de)
+        let prev_state = self.de.state;
+        self.de.state = DeState::ReadTypedValue;
+        let result = seed.deserialize(&mut *self.de);
+        self.de.state = prev_state;
+        result
     }
 
     fn size_hint(&self) -> Option<usize> {
@@ -529,7 +527,7 @@ impl<'de, 'a> VariantAccess<'de> for Enum<'a, 'de> {
         TokenTag::Struct.matches(self.de.input.read_byte()?)?;
         let len = self.de.input.read_number::<u8>()? as usize;
         if len != fields.len() {
-            return Err(Error::MissmatchLength { expected: fields.len(), found: len });
+            return Err(Error::MissmatchLength { expected: fields.len(), got: len });
         }
 
         visitor.visit_map(SizedCollection {

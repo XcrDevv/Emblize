@@ -9,9 +9,9 @@ use serde::{
     ser::{self},
 };
 
-pub fn serialize<T, B: SerializerBuf>(value: T) -> Result<B>
+pub fn serialize<T, B: SerializerBuf>(value: &T) -> Result<B>
 where
-    T: Serialize,
+    T: Serialize + ?Sized,
 {
     let mut serializer: Serializer<B> = Serializer::new();
     value.serialize(&mut serializer)?;
@@ -20,6 +20,39 @@ where
 
 pub struct SeqSerializer<'a, B: SerializerBuf> {
     ser: &'a mut Serializer<B>,
+    wrote_elem_type: bool,
+    prev_state: SerState,
+}
+
+pub struct TupSerializer<'a, B: SerializerBuf> {
+    ser: &'a mut Serializer<B>,
+    first_tag: Option<TokenTag>,
+    prev_state: SerState
+}
+
+impl<'a, B: SerializerBuf> Serializer<B> {
+    pub fn write_tag(&mut self, token: TokenTag) -> Result<()> {
+
+        match self.state {
+            SerState::WriteTypedValue => {
+                self.buf.push_byte(token as u8)?;
+            },
+            SerState::WriteSeqHeader => {
+                self.buf.push_byte(token as u8)?;
+            },
+            SerState::WriteUntypedChecked(expected) => {
+                if expected != token {
+                    return Err(Error::HeterogeneousTuple {
+                        expected: expected as u8,
+                        got: token as u8,
+                    });
+                }
+            },
+            _ => {}
+        }
+
+        Ok(())
+    }
 }
 
 impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
@@ -27,176 +60,76 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
     type Error = Error;
 
     type SerializeSeq = SeqSerializer<'a, B>;
-    type SerializeTuple = SeqSerializer<'a, B>;
+    type SerializeTuple = TupSerializer<'a, B>;
     type SerializeTupleStruct = SeqSerializer<'a, B>;
     type SerializeTupleVariant = Self;
     type SerializeMap = Self;
     type SerializeStruct = Self;
     type SerializeStructVariant = Self;
 
-    fn collect_str<T>(self, _value: &T) -> core::result::Result<Self::Ok, Self::Error>
-        where
-            T: ?Sized + core::fmt::Display, {
-        todo!()
-    }
-
     fn serialize_bool(self, v: bool) -> Result<Self::Ok> {
-        if !(self.state == SerState::WritingField) {
-            return Err(Error::DTypeNotSupported(self.state.as_str()));
-        }
-
-        self.buf.push_byte(TokenTag::Bool as u8)?;
+        self.write_tag(TokenTag::Bool)?;
         self.buf.push_byte(if v { 1 } else { 0 })?;
         Ok(())
     }
 
     fn serialize_i8(self, v: i8) -> Result<()> {
-        if !(self.state == SerState::WritingField) {
-            return Err(Error::DTypeNotSupported(self.state.as_str()));
-        }
-
-        self.buf.push_byte(TokenTag::I8 as u8)?;
+        self.write_tag(TokenTag::I8)?;
         self.buf.push_byte(v.to_be_bytes()[0])?;
         Ok(())
     }
 
     fn serialize_i16(self, v: i16) -> Result<()> {
-        if !(self.state == SerState::WritingField) {
-            return Err(Error::DTypeNotSupported(self.state.as_str()));
-        }
-
-        self.buf.push_byte(TokenTag::I16 as u8)?;
+        self.write_tag(TokenTag::I16)?;
         self.buf.push_bytes(&v.to_be_bytes())?;
         Ok(())
     }
 
     fn serialize_i32(self, v: i32) -> Result<()> {
-        match &mut self.state {
-            SerState::WritingField => self.buf.push_byte(TokenTag::I32 as u8)?,
-            SerState::WrittingSeq(len) => {
-                self.buf.push_byte(TokenTag::I32Arr as u8)?;
-                self.buf.push_bytes(&(*len as u16).to_be_bytes())?;
-                self.state = SerState::WrittingElement(TokenTag::I32 as u8);
-            },
-            SerState::WrittingElement(tk)  => {
-                TokenTag::I32.matches(*tk)
-                    .map_err(|_| Error::MissmatchTupleDType { expected: TokenTag::I32 as u8, found: *tk})?;
-            }
-            _ => return Err(Error::DTypeNotSupported(self.state.as_str()))
-        };
-
+        self.write_tag(TokenTag::I32)?;
         self.buf.push_bytes(&v.to_be_bytes())?;
-
         Ok(())
     }
 
     fn serialize_i64(self, v: i64) -> Result<()> {
-        match &mut self.state {
-            SerState::WritingField => self.buf.push_byte(TokenTag::I64 as u8)?,
-            SerState::WrittingSeq(len) => {
-                self.buf.push_byte(TokenTag::I64Arr as u8)?;
-                self.buf.push_bytes(&(*len as u16).to_be_bytes())?;
-                self.state = SerState::WrittingFixedSeq;
-            }
-            SerState::WrittingElement(_) | SerState::WrittingTime => {},
-            _ => return Err(Error::DTypeNotSupported(self.state.as_str()))
-        }
-        
+        self.write_tag(TokenTag::I64).unwrap();
         self.buf.push_bytes(&v.to_be_bytes())?;
-
         Ok(())
     }
 
     fn serialize_u8(self, v: u8) -> Result<()> {
-        match &mut self.state {
-            SerState::WritingField => self.buf.push_byte(TokenTag::U8 as u8)?,
-            SerState::WrittingSeq(len) => {
-                self.buf.push_byte(TokenTag::U8Arr as u8)?;
-                self.buf.push_bytes(&(*len as u16).to_be_bytes())?;
-                self.state = SerState::WrittingElement(TokenTag::U8 as u8);
-            }
-            SerState::WrittingElement(tk)  => {
-                TokenTag::U8.matches(*tk)
-                    .map_err(|_| Error::MissmatchTupleDType { expected: TokenTag::U8 as u8, found: *tk})?;
-            }
-            _ => return Err(Error::DTypeNotSupported(self.state.as_str()))
-        }
-
+        self.write_tag(TokenTag::U8)?;
         self.buf.push_byte(v)?;
-
         Ok(())
     }
 
     fn serialize_u16(self, v: u16) -> Result<()> {
-        if !(self.state == SerState::WritingField) {
-            return Err(Error::DTypeNotSupported(self.state.as_str()));
-        }
-
-        self.buf.push_byte(TokenTag::U16 as u8)?;
+        self.write_tag(TokenTag::U16)?;
         self.buf.push_bytes(&v.to_be_bytes())?;
         Ok(())
     }
 
     fn serialize_u32(self, v: u32) -> Result<()> {
-        if !(self.state == SerState::WritingField) {
-            return Err(Error::DTypeNotSupported(self.state.as_str()));
-        }
-
-        self.buf.push_byte(TokenTag::U32 as u8)?;
+        self.write_tag(TokenTag::U32)?;
         self.buf.push_bytes(&v.to_be_bytes())?;
         Ok(())
     }
 
     fn serialize_u64(self, v: u64) -> Result<()> {
-        match self.state {
-            SerState::WritingField => self.buf.push_byte(TokenTag::U64 as u8)?,
-            SerState::WrittingTime => {}
-            _ => return Err(Error::DTypeNotSupported(self.state.as_str()))
-        }
-
+        self.write_tag(TokenTag::U64).unwrap();
         self.buf.push_bytes(&v.to_be_bytes())?;
         Ok(())
     }
 
     fn serialize_f32(self, v: f32) -> Result<()> {
-        match &mut self.state {
-            SerState::WritingField => self.buf.push_byte(TokenTag::F32 as u8)?,
-            SerState::WrittingSeq(len) => {
-                self.buf.push_byte(TokenTag::F32Arr as u8)?;
-                self.buf.push_bytes(&(*len as u16).to_be_bytes())?;
-                self.state = SerState::WrittingElement(TokenTag::F32 as u8);
-            }
-            SerState::WrittingElement(tk)  => {
-                TokenTag::F32.matches(*tk)
-                    .map_err(|_| Error::MissmatchTupleDType { expected: TokenTag::F32 as u8, found: *tk})?;
-            }
-            SerState::WrittingFixedSeq => {}
-            _ => return Err(Error::DTypeNotSupported(self.state.as_str()))
-        }
-
+        self.write_tag(TokenTag::F32)?;
         self.buf.push_bytes(&v.to_be_bytes())?;
-
         Ok(())
     }
 
     fn serialize_f64(self, v: f64) -> Result<()> {
-        match &mut self.state {
-            SerState::WritingField => self.buf.push_byte(TokenTag::F64 as u8)?,
-            SerState::WrittingSeq(len) => {
-                self.buf.push_byte(TokenTag::F64Arr as u8)?;
-                self.buf.push_bytes(&(*len as u16).to_be_bytes())?;
-                self.state = SerState::WrittingElement(TokenTag::F64 as u8);
-            }
-            SerState::WrittingElement(tk)  => {
-                TokenTag::F64.matches(*tk)
-                    .map_err(|_| Error::MissmatchTupleDType { expected: TokenTag::F64 as u8, found: *tk})?;
-            }
-            SerState::WrittingFixedSeq => {},
-            _ => return Err(Error::DTypeNotSupported(self.state.as_str()))
-        }
-        
+        self.write_tag(TokenTag::F64)?;
         self.buf.push_bytes(&v.to_be_bytes())?;
-
         Ok(())
     }
 
@@ -205,33 +138,24 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
     }
 
     fn serialize_str(self, v: &str) -> core::result::Result<Self::Ok, Self::Error> {
-        match &mut self.state {
-            SerState::WritingField => self.buf.push_byte(TokenTag::Str as u8)?,
-            SerState::WrittingSeq(len) => {
-                self.buf.push_byte(TokenTag::StrArr as u8)?;
-                self.buf.push_bytes(&(*len as u16).to_be_bytes())?;
-                self.state = SerState::WrittingElement(TokenTag::Str as u8);
-            }
-            SerState::WrittingElement(tk)  => {
-                TokenTag::Str.matches(*tk)
-                    .map_err(|_| Error::MissmatchTupleDType { expected: TokenTag::Str as u8, found: *tk})?;
-            }
-            _ => return Err(Error::DTypeNotSupported(self.state.as_str()))
-        }
-
+        self.write_tag(TokenTag::Str)?;
         self.buf.push_bytes(&(v.len() as u16).to_be_bytes())?;
         self.buf.push_bytes(&v.as_bytes())?;
-        
         Ok(())
     }
 
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok> {
-        self.buf.push_byte(TokenTag::U8Arr as u8)?;
+        self.write_tag(TokenTag::Bytes)?;
+        self.buf.push_bytes(&(v.len() as u16).to_be_bytes())?;
         self.buf.push_bytes(&v)?;
         Ok(())
     }
 
     fn serialize_none(self) -> Result<Self::Ok> {
+        if let SerState::WriteSeqHeader = self.state {
+            self.buf.push_byte(TokenTag::None as u8)?;
+        }
+
         self.buf.push_byte(TokenTag::None as u8)?;
         Ok(())
     }
@@ -240,6 +164,11 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
     where
         T: ?Sized + Serialize,
     {
+        if let SerState::WriteSeqHeader = self.state {
+            self.buf.push_byte(TokenTag::Some as u8)?;
+            self.state = SerState::WriteUntypedValue;
+        }
+
         self.buf.push_byte(TokenTag::Some as u8)?;
         value.serialize(self)
     }
@@ -261,7 +190,7 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
         variant_index: u32,
         _variant: &'static str,
     ) -> Result<Self::Ok> {
-        self.buf.push_byte(TokenTag::Enum as u8)?;
+        self.write_tag(TokenTag::Enum)?;
         if variant_index > 0x7F {
             Err(Error::IndexVariantExceeded)
         } else {
@@ -279,21 +208,14 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
         T: ?Sized + Serialize,
     {
         let token_tag = TokenTag::try_from(name)?;
-        self.buf.push_byte(token_tag as u8)?;
-
+        
+        self.write_tag(token_tag)?;
         match token_tag {
             TokenTag::Vec2
-             | TokenTag::Vec3
-             | TokenTag::Vec4
-             | TokenTag::Quat => self.state = SerState::WrittingFixedSeq,
-            TokenTag::TimestampMillis
-             | TokenTag::TimestampMicros
-             | TokenTag::MillisSinceBoot
-             | TokenTag::MicrosSinceBoot
-             | TokenTag::DurationMillis
-             | TokenTag::DurationMicros => self.state = SerState::WrittingTime,
-
-            _ => return Err(Error::DTypeNotSupported(self.state.as_str()))
+             |TokenTag::Vec3
+             |TokenTag::Vec4
+             |TokenTag::Quat => self.state = SerState::WriteVecHeader,
+            _ => self.state = SerState::WriteUntypedValue
         }
 
         value.serialize(self)
@@ -309,8 +231,8 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
     where
         T: ?Sized + Serialize,
     {
-        self.state = SerState::WritingField;
-        self.buf.push_byte(TokenTag::Enum as u8)?;
+        self.state = SerState::WriteTypedValue;
+        self.write_tag(TokenTag::Enum)?;
         if variant_index > 0x7F {
             Err(Error::IndexVariantExceeded)
         } else {
@@ -319,45 +241,61 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
         }
     }
 
-    fn serialize_seq(
-        self,
-        len: Option<usize>,
-    ) -> Result<Self::SerializeSeq> {
+    fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq> {
         let len = len.ok_or(Error::LengthRequired)? as u16;
-
-        self.state = SerState::WrittingSeq(len);
+        let prev_state = self.state;
 
         if len == 0 {
-            self.buf.push_byte(TokenTag::EmptyArr as u8)?;
+            self.write_tag(TokenTag::EmptyArr)?;
+            return Ok(SeqSerializer {
+                ser: self,
+                wrote_elem_type: true, 
+                prev_state,
+            });
         }
 
-        Ok(SeqSerializer { ser: self })
+        self.write_tag(TokenTag::Array)?;
+        self.buf.push_bytes(&len.to_be_bytes())?;
+        self.state = SerState::WriteSeqHeader;
+
+        Ok(SeqSerializer { ser: self, wrote_elem_type: false, prev_state })
     }
 
-    fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple> {
-        if !(self.state == SerState::WrittingFixedSeq) {
-            self.state = SerState::WrittingSeq(len as u16);
-        }
-        Ok(SeqSerializer { ser: self })
+
+fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple> {
+    let prev_state = self.state;
+    
+    self.write_tag(TokenTag::Array)?;
+    
+    if self.state != SerState::WriteVecHeader {
+        self.buf.push_bytes(&(len as u16).to_be_bytes())?;
+        self.state = SerState::WriteSeqHeader;
     }
+
+    Ok(TupSerializer {
+        prev_state,
+        ser: self,
+        first_tag: None,
+    })
+}
 
     fn serialize_struct(
         self,
         _name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStruct> {
-        self.buf.push_byte(TokenTag::Struct as u8)?;
+        self.write_tag(TokenTag::Struct)?;
         self.buf.push_byte(len as u8)?;
         Ok(self)
     }
-
+    
     fn serialize_tuple_struct(
         self,
         _name: &'static str,
-        len: usize,
+        _len: usize,
     ) -> Result<Self::SerializeTupleStruct> {
-        self.state = SerState::WrittingSeq(len as u16);
-        Ok(SeqSerializer { ser: self })
+        self.state = SerState::WriteSeqHeader;
+        Ok(SeqSerializer { prev_state: self.state, ser: self, wrote_elem_type: false })
     }
 
     fn serialize_tuple_variant(
@@ -372,14 +310,9 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
 
     fn serialize_map(
         self,
-        len: Option<usize>,
+        _len: Option<usize>,
     ) -> Result<Self::SerializeMap> {
-        let len = len.ok_or(Error::LengthRequired)?;
-
-        (TokenTag::U8 as u8).serialize(&mut *self)?;
-        (len as u16).serialize(&mut *self)?;
-
-        Ok(self)
+        unimplemented!("Map serialization has not yet been implemented")
     }
 
     fn serialize_struct_variant(
@@ -389,7 +322,7 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
         _variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStructVariant> {
-        self.buf.push_byte(TokenTag::Enum as u8)?;
+        self.write_tag(TokenTag::Enum)?;
         if variant_index > 0x7F {
             Err(Error::IndexVariantExceeded)
         } else {
@@ -409,15 +342,24 @@ impl<'a, B: SerializerBuf> ser::SerializeSeq for SeqSerializer<'a, B> {
     where
         T: ?Sized + Serialize,
     {
-        value.serialize(&mut *self.ser)
+        if !self.wrote_elem_type {
+            self.ser.state = SerState::WriteSeqHeader;
+            value.serialize(&mut *self.ser)?;
+            self.wrote_elem_type = true;
+        } else {
+            self.ser.state = SerState::WriteUntypedValue;
+            value.serialize(&mut *self.ser)?;
+        }
+        Ok(())
     }
 
     fn end(self) -> Result<Self::Ok> {
+        self.ser.state = self.prev_state;
         Ok(())
     }
 }
 
-impl<'a, B: SerializerBuf> ser::SerializeTuple for SeqSerializer<'a, B> {
+impl<'a, B: SerializerBuf> ser::SerializeTuple for TupSerializer<'a, B> {
     type Ok = ();
     type Error = Error;
 
@@ -425,10 +367,38 @@ impl<'a, B: SerializerBuf> ser::SerializeTuple for SeqSerializer<'a, B> {
     where
         T: ?Sized + Serialize,
     {
-        value.serialize(&mut *self.ser)
+
+        match self.first_tag {
+            None => {
+                if self.ser.state == SerState::WriteVecHeader {
+                    self.first_tag = Some(TokenTag::try_from(TokenTag::F32).unwrap());
+                    value.serialize(&mut *self.ser)?;
+                } else {
+                    let pos_before = self.ser.buf.as_slice().len();
+                    value.serialize(&mut *self.ser)?;
+                    let written_tag = self.ser.buf.as_slice()[pos_before];
+                    self.first_tag = Some(TokenTag::try_from(written_tag).unwrap());
+                }
+            }
+            Some(expected) => {
+                self.prev_state = self.ser.state;
+                if self.ser.state == SerState::WriteVecHeader {
+                    self.ser.state = SerState::WriteUntypedValue;
+                } else {
+                    self.ser.state = SerState::WriteUntypedChecked(expected);
+                }
+                value.serialize(&mut *self.ser)?;
+            }
+        }
+        Ok(())
     }
 
+
     fn end(self) -> Result<Self::Ok> {
+        self.ser.state = match self.prev_state {
+            SerState::WriteSeqHeader => SerState::WriteUntypedValue,
+            other => other,
+        };
         Ok(())
     }
 }
@@ -496,9 +466,13 @@ impl<'a, B: SerializerBuf> ser::SerializeStruct for &'a mut Serializer<B> {
     where
         T: ?Sized + Serialize,
     {
+        let temp = self.state;
         self.buf.push_bytes(&(key.len() as u16).to_be_bytes())?;
         self.buf.push_bytes(&key.as_bytes())?;
-        value.serialize(&mut **self)
+        self.state = SerState::WriteTypedValue;
+        value.serialize(&mut **self)?;
+        self.state = temp;
+        Ok(())
     }
 
     fn end(self) -> Result<()> {
