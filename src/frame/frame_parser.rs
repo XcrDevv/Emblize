@@ -127,7 +127,7 @@ where
         None
     }
 
-        pub fn poll_frame(&mut self, out: &mut [u8]) -> Option<usize> {
+    pub fn poll_frame(&mut self, out: &mut [u8]) -> Option<usize> {
         let sync_len = self.sync.len();
         if self.len() < sync_len {
             return None;
