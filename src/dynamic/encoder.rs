@@ -78,21 +78,18 @@ impl<B: SerializerBuf> Serializer<B> {
                 }
                 self.buf.push_byte(TokenTag::from(token) as u8)?;
             },
-            Token::U8Arr(name, values) => self.write_seq(name, values)?,
-            Token::I32Arr(name, values) => self.write_seq(name, values)?,
-            Token::I64Arr(name, values) => self.write_seq(name, values)?,
-            Token::F32Arr(name, values) => self.write_seq(name, values)?,
-            Token::F64Arr(name, values) => self.write_seq(name, values)?,
-            Token::StrArr(name, values) => {
+            Token::Array(name, arr_type, values) => {
                 if let Some(name) = name {
-                    self.write_string(name)?;
+                    self.write_string(&name)?;
                 }
                 self.buf.push_byte(TokenTag::from(token) as u8)?;
+                self.buf.push_byte(*arr_type as u8)?;
                 self.buf.push_bytes(&(values.len() as u16).to_be_bytes())?;
-                for value in values.iter() {
-                    self.write_string(value)?;
+                for n in values {
+                    self.write_any(n)?;
                 }
             }
+            Token::Bytes(name, values) => self.write_seq(name, values)?,
 
             Token::TimestampMillis(name, value) => self.write_number(name, *value)?,
             Token::TimestampMicros(name, value) => self.write_number(name, *value)?,
@@ -170,7 +167,7 @@ impl<B: SerializerBuf> Serializer<B> {
 ///
 /// let data = StructBuilder::new_root()
 ///     .u8("flag", 1)
-///     .f32_arr("data", &[3.0, 5.0])
+///     .f32_array("data", &[3.0, 5.0])
 ///     .build();
 ///
 /// let content_bytes = encode(&data).unwrap();

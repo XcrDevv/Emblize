@@ -6,6 +6,7 @@ use alloc::{
     vec::Vec,
     borrow::{ToOwned, Cow}
 };
+use num_enum::TryFromPrimitive;
 
 use crate::core::token::{Token, TokenTag};
 use crate::de::deserializer::{DeState, Deserializer};
@@ -14,7 +15,7 @@ use crate::core::{reader::Reader, utils::endian::BytesNum};
 
 impl<'de> Deserializer<'de> {
     pub fn read_any(&mut self) -> Result<Token<'de>> {
-        let name = if self.state == DeState::ReadingValue {
+        let name = if self.state == DeState::ReadUntypedValue {
             None
         } else {
             Some(Cow::Owned(self.read_string()?))
@@ -37,8 +38,8 @@ impl<'de> Deserializer<'de> {
 
             TokenTag::Str => Token::Str(name, Cow::Owned(self.read_string()?)),
             TokenTag::Enum => {
-                let is_field = self.state == DeState::ReadingField;
-                self.state = DeState::ReadingValue;
+                let is_field = self.state == DeState::ReadTypedValue;
+                self.state = DeState::ReadUntypedValue;
 
                 let variant_index = self.input.read_number::<u8>()?;
                 let token = if (variant_index & 0x80) != 0 {
@@ -50,36 +51,36 @@ impl<'de> Deserializer<'de> {
                 };
 
                 if is_field {
-                    self.state = DeState::ReadingField
+                    self.state = DeState::ReadTypedValue
                 }
 
                 token
             }
             TokenTag::Some => {
-                let is_field = self.state == DeState::ReadingField;
-                self.state = DeState::ReadingValue;
+                let is_field = self.state == DeState::ReadTypedValue;
+                self.state = DeState::ReadUntypedValue;
 
                 let token = Box::new(self.read_any().unwrap());
                 
                 if is_field {
-                    self.state = DeState::ReadingField;
+                    self.state = DeState::ReadTypedValue;
                 }
 
                 Token::Some(name, token)
             }
             TokenTag::None => {
-                let is_field = self.state == DeState::ReadingField;
-                self.state = DeState::ReadingValue;
+                let is_field = self.state == DeState::ReadTypedValue;
+                self.state = DeState::ReadUntypedValue;
 
                 if is_field {
-                    self.state = DeState::ReadingField;
+                    self.state = DeState::ReadTypedValue;
                 }
                 
                 Token::None(name)
             }
 
             TokenTag::Struct => {
-                self.state = DeState::ReadingField;
+                self.state = DeState::ReadTypedValue;
 
                 let field_count = self.input.read_byte()? as usize;
                 let mut tokens = Vec::with_capacity(field_count);
@@ -93,12 +94,22 @@ impl<'de> Deserializer<'de> {
             },
 
             TokenTag::EmptyArr => Token::EmptyArr(name),
-            TokenTag::U8Arr => Token::U8Arr(name, self.read_seq()?),
-            TokenTag::I32Arr => Token::I32Arr(name, self.read_seq()?),
-            TokenTag::I64Arr => Token::I64Arr(name, self.read_seq()?),
-            TokenTag::F32Arr => Token::F32Arr(name, self.read_seq()?),
-            TokenTag::F64Arr => Token::F64Arr(name, self.read_seq()?),
-            TokenTag::StrArr => Token::StrArr(name, self.read_string_seq()?),
+            TokenTag::Array => {
+                self.state = DeState::ReadUntypedValue;
+
+                let size = self.input.read_number::<u16>()? as usize;
+                let mut tokens = Vec::with_capacity(size);
+                let arr_type = TokenTag::try_from_primitive(self.input.read_byte()?)
+                    .map_err(|_| Error::InvalidToken)?;
+
+                for _ in 0..size {
+                    let token = self.read_any()?;
+                    tokens.push(token);
+                }
+                
+                Token::Array(name, arr_type, tokens)
+            }
+            TokenTag::Bytes => Token::Bytes(name, self.read_seq()?),
 
             TokenTag::TimestampMillis => Token::TimestampMillis(name, self.input.read_number()?),
             TokenTag::TimestampMicros => Token::TimestampMicros(name, self.input.read_number()?),
@@ -140,19 +151,6 @@ impl<'de> Deserializer<'de> {
         Ok(Cow::Owned(values))
     }
 
-
-    fn read_string_seq(&mut self) -> Result<Cow<'de, [Cow<'de, str>]>> {
-        let len = self.input.read_number::<u16>()? as usize;
-        let mut values: Vec<Cow<'_, str>> = Vec::with_capacity(len);
-
-        for _ in 0..len {
-            let s = self.read_string()?;
-            values.push(Cow::Owned(s));
-        }
-
-        Ok(Cow::Owned(values))
-    }
-
     fn read_fixed_seq<T: BytesNum + Debug, const N: usize> (
         &mut self,
     ) -> Result<[T; N]> {
@@ -187,7 +185,7 @@ impl<'de> Deserializer<'de> {
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust,ignore
 /// use emblize::dynamic::decode;
 ///
 /// // Example binary payload

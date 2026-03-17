@@ -21,9 +21,18 @@
 //! which makes them especially useful when building standalone
 //! values, array elements, or enum payloads.
 
-use alloc::{borrow::Cow, boxed::Box};
+use alloc::boxed::Box;
 
-use crate::core::token::Token;
+use crate::core::token::{Token, TokenTag};
+
+macro_rules! impl_array_factory {
+    ($fn_name:ident, $ty:ty, $variant:ident) => {
+        pub fn $fn_name<'a>(values: &[$ty]) -> Token<'a> {
+            let vec = values.iter().map(|&v| Token::$variant(None, v)).collect();
+            Token::Array(None, TokenTag::$variant, vec)
+        }
+    };
+}
 
 pub fn bool<'a>(value: bool) -> Token<'a> {
     Token::Bool(None, value)
@@ -85,28 +94,60 @@ pub fn option_none<'a>() -> Token<'a> {
     Token::None(None)
 }
 
-pub fn u8_arr<'a>(values: &'a[u8]) -> Token<'a> {
-    Token::U8Arr(None, values.into())
+pub fn array<'a>(values: &'a [Token<'a>]) -> Token<'a> {
+    Token::Array(None, TokenTag::Array, values.into())
 }
 
-pub fn i32_arr<'a>(values: &'a[i32]) -> Token<'a> {
-    Token::I32Arr(None, values.into())
+pub fn bytes<'a>(values: &'a[u8]) -> Token<'a> {
+    Token::Bytes(None, values.into())
 }
 
-pub fn i64_arr<'a>(values: &'a[i64]) -> Token<'a> {
-    Token::I64Arr(None, values.into())
+impl_array_factory!(bool_array, bool, Bool);
+impl_array_factory!(u8_array, u8, U8);
+impl_array_factory!(u16_array, u16, U16);
+impl_array_factory!(u32_array, u32, U32);
+impl_array_factory!(u64_array, u64, U64);
+impl_array_factory!(i8_array, i8, I8);
+impl_array_factory!(i16_array, i16, I16);
+impl_array_factory!(i32_array, i32, I32);
+impl_array_factory!(i64_array, i64, I64);
+impl_array_factory!(f32_array, f32, F32);
+impl_array_factory!(f64_array, f64, F64);
+
+pub fn str_array<'a>(values: &'a[&str]) -> Token<'a> {
+    let vec = values.iter().map(|&v| Token::Str(None, v.into())).collect();
+    Token::Array(None, TokenTag::Array, vec)
 }
 
-pub fn f32_arr<'a>(values: &'a[f32]) -> Token<'a> {
-    Token::F32Arr(None, values.into())
+pub fn enum_array<'a>(values: &'a [Token<'a>]) -> Token<'a> {
+    Token::Array(None, TokenTag::Enum, values.into())
 }
 
-pub fn f64_arr<'a>(values: &'a[f64]) -> Token<'a> {
-    Token::F64Arr(None, values.into())
+pub fn option_array<'a>(values: &'a [Option<Token<'a>>]) -> Token<'a> {
+    let vec = values.iter()
+        .map(|v| match v {
+            Some(t) => Token::Some(None, Box::new(t.clone())),
+            None => Token::None(None),
+        })
+        .collect();
+    Token::Array(None, TokenTag::Enum, vec)
 }
 
-pub fn str_arr<'a>(values: &'a[&str]) -> Token<'a> {
-    Token::StrArr(None, values.iter().map(|&s| Cow::Borrowed(s)).collect())
+impl_array_factory!(timestamp_ms_array, u64, TimestampMillis);
+impl_array_factory!(timestamp_us_array, u64, TimestampMicros);
+impl_array_factory!(ms_since_boot_array, u64, MillisSinceBoot);
+impl_array_factory!(us_since_boot_array, u64, MicrosSinceBoot);
+impl_array_factory!(duration_ms_array, i64, DurationMillis);
+impl_array_factory!(duration_us_array, i64, DurationMicros);
+
+impl_array_factory!(vec2_array, [f32; 2], Vec2);
+impl_array_factory!(vec3_array, [f32; 3], Vec3);
+impl_array_factory!(vec4_array, [f32; 4], Vec4);
+impl_array_factory!(quaternion_array, [f32; 4], Quat);
+
+
+pub fn struct_array<'a>(values: &'a [Token<'a>]) -> Token<'a> {
+    Token::Array(None, TokenTag::Struct, values.into())
 }
 
 pub fn timestamp_ms<'a>(value: u64) -> Token<'a> {
