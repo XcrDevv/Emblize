@@ -1,7 +1,6 @@
 use core::fmt::Display;
 use thiserror::Error;
 
-
 pub type Result<T> = core::result::Result<T, Error>;
 
 #[derive(Debug, Error)]
@@ -24,9 +23,6 @@ pub enum Error {
 
     #[error("Unexpected end of input")]
     UnexpectedEof,
-    
-    #[error("Invalid data type for current state: {0}")]
-    DTypeNotSupported(&'static str),
 
     #[error("Unknown data type: 0x{0:0>2x}")]
     UnknownDType(u8),
@@ -40,16 +36,16 @@ pub enum Error {
     #[error("Length required")]
     LengthRequired,
     
-    #[error("Missmatch length (expected {expected:?}, found {found:?})")]
+    #[error("Missmatch length (expected {expected:?}, got {got:?})")]
     MissmatchLength {
         expected: usize,
-        found: usize,
+        got: usize,
     },
 
-    #[error("Mismatch tuple data type. (expected 0x{expected:0>2x}, found 0x{found:0>2x}). All elements in the tuple must be of the same type.")]
-    MissmatchTupleDType {
+    #[error("Mismatch tuple data type. (expected 0x{expected:0>2x}, got 0x{got:0>2x}). All elements in the tuple must be of the same type.")]
+    HeterogeneousTuple {
         expected: u8,
-        found: u8,
+        got: u8,
     },
 
     #[error("Failed to convert bytes to string")]
