@@ -1,4 +1,4 @@
-use crate::{core::token::TokenTag, error::{Error, Result}};
+use crate::{core::token::TokenTag, error::Result};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum SerState {
@@ -7,18 +7,6 @@ pub enum SerState {
     WriteSeqHeader,
     WriteVecHeader,
     WriteUntypedChecked(TokenTag),
-}
-
-impl SerState {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            SerState::WriteTypedValue => "WriteTypedValue",
-            SerState::WriteUntypedValue => "WriteUntypedValue",
-            SerState::WriteSeqHeader => "WriteSeqHeader",
-            SerState::WriteVecHeader => "WriteVecHeader",
-            SerState::WriteUntypedChecked(_) => "WriteUntypedChecked",
-        }
-    }
 }
 
 pub struct Serializer<B: SerializerBuf> {
