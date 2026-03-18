@@ -126,6 +126,6 @@ fn unsupported_serialize_tuple_t() {
 #[test]
 #[should_panic]
 fn unsupported_deserialize_tuple_t() {
-    let value = [TokenTag::I32Arr as u8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02];
+    let value = [TokenTag::Array as u8, TokenTag::I32 as u8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02];
     let _ = from_bytes::<(i32, u32)>(&value).unwrap();
 }
