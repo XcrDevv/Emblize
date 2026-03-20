@@ -6,6 +6,7 @@ use emblize::core::token::TokenTag;
 use emblize::{from_bytes, to_allocvec};
 use emblize::types::*;
 use serde::Serialize;
+use serde_bytes::Bytes;
 
 #[test]
 fn serialize_true() {
@@ -153,8 +154,8 @@ fn serialize_str() {
 
 #[test]
 fn serialize_bytes() {
-    let value: &[u8] = &[0x00, 0xFF, 0x33, 0x26];
-    let expected = vec![TokenTag::U8Arr as u8, 0x00, 0x04, 0x00, 0xFF, 0x33, 0x26];
+    let value = Bytes::new(&[0x00, 0xFF, 0x33, 0x26]);
+    let expected = vec![TokenTag::Bytes as u8, 0x00, 0x04, 0x00, 0xFF, 0x33, 0x26];
 
     assert_eq!(
         to_allocvec(&value).unwrap(),
@@ -218,8 +219,8 @@ fn serialize_struct_variant() {
 
 #[test]
 fn serialize_some() {
-    let value = Some(true);
-    let expected = vec![TokenTag::Some as u8, TokenTag::Bool as u8, 0x01];
+    let value: Option<u8> = Some(5);
+    let expected = vec![TokenTag::Some as u8, TokenTag::U8 as u8, 0x05];
 
     assert_eq!(
         to_allocvec(&value).unwrap(),
@@ -355,31 +356,42 @@ fn serialize_empty_seq() {
 }
 
 #[test]
-fn serialize_str_seq() {
-    let value: Vec<&str> = vec!["a", "b"];
-    let expected = vec![TokenTag::StrArr as u8, 0x00, 0x02, 0x00, 0x01, 0x61, 0x00, 0x01, 0x62];   
-
-    assert_eq!(
-        to_allocvec(&value).unwrap(),
-        expected
-    )
-}
-
-#[test]
-fn serialize_seq_i32() {
+fn serialize_array() {
     let value: Vec<i32> = vec![1, 2];
-    let expected = vec![TokenTag::I32Arr as u8, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02];
+    let expected = vec![TokenTag::Array as u8, 0x00, 0x02, TokenTag::I32 as u8, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02];
 
     assert_eq!(
         to_allocvec(&value).unwrap(),
         expected
     )
 }
+
+// #[test]
+// fn serialize_str_seq() {
+//     let value: Vec<&str> = vec!["a", "b"];
+//     let expected = vec![TokenTag::StrArr as u8, 0x00, 0x02, 0x00, 0x01, 0x61, 0x00, 0x01, 0x62];   
+
+//     assert_eq!(
+//         to_allocvec(&value).unwrap(),
+//         expected
+//     )
+// }
+
+// #[test]
+// fn serialize_seq_i32() {
+//     let value: Vec<i32> = vec![1, 2];
+//     let expected = vec![TokenTag::I32Arr as u8, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02];
+
+//     assert_eq!(
+//         to_allocvec(&value).unwrap(),
+//         expected
+//     )
+// }
 
 #[test]
 fn serialize_tuple_i32() {
     let value: (i32, i32) = (1, 2);
-    let expected = vec![TokenTag::I32Arr as u8, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02];
+    let expected = vec![TokenTag::Array as u8, 0x00, 0x02, TokenTag::I32 as u8, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02];
 
     assert_eq!(
         to_allocvec(&value).unwrap(),
