@@ -41,6 +41,7 @@ impl<'a, B: SerializerBuf> Serializer<B> {
                 self.buf.push_byte(token as u8)?;
             },
             SerState::WriteUntypedChecked(expected) => {
+                println!("while serializing: {:?}", token);
                 if expected != token {
                     return Err(Error::HeterogeneousTuple {
                         expected: expected as u8,
@@ -170,7 +171,14 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
         }
 
         self.buf.push_byte(TokenTag::Some as u8)?;
-        value.serialize(self)
+
+        let prev = self.state;
+        if matches!(self.state, SerState::WriteUntypedChecked(_)) {
+            self.state = SerState::WriteUntypedValue;
+        }
+        value.serialize(&mut *self)?;
+        self.state = prev;
+        Ok(())
     }
 
     fn serialize_unit(self) -> Result<Self::Ok> {
@@ -264,9 +272,8 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
 
 fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple> {
     let prev_state = self.state;
-    
+
     self.write_tag(TokenTag::Array)?;
-    
     if self.state != SerState::WriteVecHeader {
         self.buf.push_bytes(&(len as u16).to_be_bytes())?;
         self.state = SerState::WriteSeqHeader;

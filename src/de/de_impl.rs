@@ -221,12 +221,14 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         match self.state {
             DeState::ReadTypedValue => {
                 if TokenTag::Some as u8 != token && TokenTag::None as u8 != token {
+                    println!("got: 0x{:0>2x}", token);
                     return Err(Error::ExpectedType("Some or None"))
                 }
             }
             DeState::ReadingSeq(ref mut arr_type) => {
                 if let Some(arr_type) = arr_type.take() {
                     if TokenTag::Some as u8 != arr_type && TokenTag::None as u8 != arr_type {
+                        println!("got: 0x{:0>2x}", token);
                         return Err(Error::ExpectedType("Some or None"))
                     }
                 }
@@ -352,6 +354,31 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: de::Visitor<'de>,
     {
+        
+        let len = match self.state {
+            DeState::ReadingSeq(_) => {
+                let len = self.input.read_number::<u16>()? as usize;
+                let arr_type = self.input.read_byte()?;
+                self.state = DeState::ReadingSeq(Some(arr_type));
+                len
+            }
+            _ => {
+                let tag = self.input.read_byte()?;
+                if tag == TokenTag::EmptyArr as u8 {
+                    0
+                } else {
+                    let len = self.input.read_number::<u16>()? as usize;
+                    let arr_type = self.input.read_byte()?;
+                    self.state = DeState::ReadingSeq(Some(arr_type));
+                    len
+                }
+            }
+        };
+
+        if len != tup_len {
+            return Err(Error::MissmatchLength { expected: tup_len, got: len });
+        }
+
         visitor.visit_seq(SizedCollection {
             de: self,
             remaining: tup_len,
