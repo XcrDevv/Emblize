@@ -42,7 +42,7 @@ impl<'de> Deserializer<'de> {
             DeState::ReadTypedValue => {
                 token_tag.matches(self.input.read_byte()?)?;
             }
-            DeState::ReadingSeq(ref mut arr_type) => {
+            DeState::ReadSeq(ref mut arr_type) => {
                 if let Some(arr_type) = arr_type.take() {
                     token_tag.matches(arr_type)?;
                 }
@@ -225,7 +225,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
                     return Err(Error::ExpectedType("Some or None"))
                 }
             }
-            DeState::ReadingSeq(ref mut arr_type) => {
+            DeState::ReadSeq(ref mut arr_type) => {
                 if let Some(arr_type) = arr_type.take() {
                     if TokenTag::Some as u8 != arr_type && TokenTag::None as u8 != arr_type {
                         println!("got: 0x{:0>2x}", token);
@@ -276,19 +276,19 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         match name {
             "Vec2" => {
                 self.expected_tag(TokenTag::Vec2)?;
-                self.state = DeState::ReadUntypedValue
+                self.state = DeState::ReadVec
             }
             "Vec3" => {
                 self.expected_tag(TokenTag::Vec3)?;
-                self.state = DeState::ReadUntypedValue
+                self.state = DeState::ReadVec
             }
             "Vec4" => {
                 self.expected_tag(TokenTag::Vec4)?;
-                self.state = DeState::ReadUntypedValue
+                self.state = DeState::ReadVec
             }
             "Quat" => {
                 self.expected_tag(TokenTag::Quat)?;
-                self.state = DeState::ReadUntypedValue
+                self.state = DeState::ReadVec
             }
             "TimestampMillis" => {
                 self.expected_tag(TokenTag::TimestampMillis)?;
@@ -325,10 +325,10 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: de::Visitor<'de>,
     {
         let len = match self.state {
-            DeState::ReadingSeq(_) => {
+            DeState::ReadSeq(_) => {
                 let len = self.input.read_number::<u16>()? as usize;
                 let arr_type = self.input.read_byte()?;
-                self.state = DeState::ReadingSeq(Some(arr_type));
+                self.state = DeState::ReadSeq(Some(arr_type));
                 len
             }
             _ => {
@@ -338,7 +338,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
                 } else {
                     let len = self.input.read_number::<u16>()? as usize;
                     let arr_type = self.input.read_byte()?;
-                    self.state = DeState::ReadingSeq(Some(arr_type));
+                    self.state = DeState::ReadSeq(Some(arr_type));
                     len
                 }
             }
@@ -354,12 +354,18 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: de::Visitor<'de>,
     {
+        if self.state == DeState::ReadVec {
+            return visitor.visit_seq(SizedCollection {
+                de: self,
+                remaining: tup_len,
+            })
+        }
         
         let len = match self.state {
-            DeState::ReadingSeq(_) => {
+            DeState::ReadSeq(_) => {
                 let len = self.input.read_number::<u16>()? as usize;
                 let arr_type = self.input.read_byte()?;
-                self.state = DeState::ReadingSeq(Some(arr_type));
+                self.state = DeState::ReadSeq(Some(arr_type));
                 len
             }
             _ => {
@@ -369,7 +375,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
                 } else {
                     let len = self.input.read_number::<u16>()? as usize;
                     let arr_type = self.input.read_byte()?;
-                    self.state = DeState::ReadingSeq(Some(arr_type));
+                    self.state = DeState::ReadSeq(Some(arr_type));
                     len
                 }
             }

@@ -4,7 +4,8 @@ use crate::core::reader::Reader;
 pub enum DeState {
     ReadUntypedValue,
     ReadTypedValue,
-    ReadingSeq(Option<u8>),
+    ReadSeq(Option<u8>),
+    ReadVec,
 }
 
 pub struct Deserializer<'de> {
