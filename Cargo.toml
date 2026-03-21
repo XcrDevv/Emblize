@@ -3,6 +3,9 @@ name = "emblize"
 version = "0.1.0"
 edition = "2024"
 
+[dev-dependencies]
+serde_bytes = "0.11"
+
 [dependencies]
 heapless = "0.9.2"
 num_enum = { version = "0.7.5", default-features = false }
