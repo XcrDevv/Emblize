@@ -37,11 +37,10 @@ impl<'a, B: SerializerBuf> Serializer<B> {
             SerState::WriteTypedValue => {
                 self.buf.push_byte(token as u8)?;
             },
-            SerState::WriteSeqHeader => {
+            SerState::WriteSeqHeader | SerState::WriteVecHeader => {
                 self.buf.push_byte(token as u8)?;
             },
             SerState::WriteUntypedChecked(expected) => {
-                println!("while serializing: {:?}", token);
                 if expected != token {
                     return Err(Error::HeterogeneousTuple {
                         expected: expected as u8,
@@ -273,8 +272,8 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
 fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple> {
     let prev_state = self.state;
 
-    self.write_tag(TokenTag::Array)?;
     if self.state != SerState::WriteVecHeader {
+        self.write_tag(TokenTag::Array)?;
         self.buf.push_bytes(&(len as u16).to_be_bytes())?;
         self.state = SerState::WriteSeqHeader;
     }
@@ -377,15 +376,19 @@ impl<'a, B: SerializerBuf> ser::SerializeTuple for TupSerializer<'a, B> {
 
         match self.first_tag {
             None => {
-                if self.ser.state == SerState::WriteVecHeader {
-                    self.first_tag = Some(TokenTag::try_from(TokenTag::F32).unwrap());
-                    value.serialize(&mut *self.ser)?;
-                } else {
-                    let pos_before = self.ser.buf.as_slice().len();
-                    value.serialize(&mut *self.ser)?;
-                    let written_tag = self.ser.buf.as_slice()[pos_before];
-                    self.first_tag = Some(TokenTag::try_from(written_tag).unwrap());
-                }
+                // if self.ser.state == SerState::WriteVecHeader {
+                //     self.first_tag = Some(TokenTag::try_from(TokenTag::F32).unwrap());
+                //     value.serialize(&mut *self.ser)?;
+                // } else {
+                //     let pos_before = self.ser.buf.as_slice().len();
+                //     value.serialize(&mut *self.ser)?;
+                //     let written_tag = self.ser.buf.as_slice()[pos_before];
+                //     self.first_tag = Some(TokenTag::try_from(written_tag).unwrap());
+                // }
+                let pos_before = self.ser.buf.as_slice().len();
+                value.serialize(&mut *self.ser)?;
+                let written_tag = self.ser.buf.as_slice()[pos_before];
+                self.first_tag = Some(TokenTag::try_from(written_tag).unwrap());
             }
             Some(expected) => {
                 self.prev_state = self.ser.state;
@@ -528,4 +531,15 @@ impl_serialize_time!(DurationMicros);
 impl_serialize_vec!(Vec2, x, y);
 impl_serialize_vec!(Vec3, x, y, z);
 impl_serialize_vec!(Vec4, x, y, z, w);
-impl_serialize_vec!(Quat, x, y, z, w);
+
+impl serde::Serialize for Quat {
+        fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
+        where
+            S: serde::Serializer,
+        {
+            serializer.serialize_newtype_struct(
+                "Quat",
+                &(self.x, self.y, self.z, self.w)
+            )
+        }
+    }

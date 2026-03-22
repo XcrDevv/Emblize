@@ -11,34 +11,35 @@
 ///
 /// # Requirements
 ///
-/// The type must have fields with the exact names provided in the macro invocation.
-/// All fields are assumed to be `f32` types.
+/// The type must:
+/// - Have fields with the exact names provided in the macro invocation
+/// - Have all fields as `T` where `T: VectorNumber`
 ///
 /// # Examples
 ///
 /// ```rust,ignore
 /// use serde::Serialize;
 ///
-/// struct Vec3 {
-///     x: f32,
-///     y: f32,
-///     z: f32,
+/// struct Vec3<T> {
+///     x: T,
+///     y: T,
+///     z: T,
 /// }
 ///
 /// impl_serialize_vec!(Vec3, x, y, z);
 ///
-/// let v = Vec3 { x: 1.0, y: 2.0, z: 3.0 };
+/// let v = Vec3 { x: 1.0f32, y: 2.0f32, z: 3.0f32 };
 /// let bytes = serialize(&v).unwrap();
 /// ```
 ///
 /// ```rust,ignore
 /// use serde::Serialize;
 ///
-/// struct Quat {
-///     x: f32,
-///     y: f32,
-///     z: f32,
-///     w: f32,
+/// struct Quat<T> {
+///     x: T,
+///     y: T,
+///     z: T,
+///     w: T,
 /// }
 ///
 /// impl_serialize_vec!(Quat, x, y, z, w);
@@ -46,16 +47,18 @@
 ///
 /// # Wire Format
 ///
-/// The serialized data uses the binary protocol's `Vec2F32`, `Vec3F32`, `Vec4F32`, or 
-/// `QuatF32` token types depending on the number of fields, ensuring efficient 
-/// transmission for embedded systems.
+/// The serialized data uses the binary protocol's `Vec2`, `Vec3`, `Vec4`, or 
+/// `Quat` token types depending on the number of fields, supporting any numeric 
+/// type `T` that implements `VectorNumber` (e.g., `f32`, `f64`, `i32`).
 #[macro_export]
 macro_rules! impl_serialize_vec {
     (
         $VecN:ident,
         $( $field:ident ),+
     ) => {
-        impl serde::Serialize for $VecN
+        impl<'de, T> serde::Serialize for $VecN<'de, T>
+        where 
+            T: crate::core::types::VectorNumber
         {
             fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
             where
@@ -75,8 +78,8 @@ macro_rules! impl_serialize_vec {
 /// Implements `serde::Deserialize` for vector-like types with named fields.
 ///
 /// This macro generates a `Deserialize` implementation that deserializes the type from 
-/// a newtype struct containing a sequence of floats. The deserialized format matches 
-/// the custom binary protocol used in embedded/robotics systems.
+/// a newtype struct containing a sequence of numeric values. The deserialized format 
+/// matches the custom binary protocol used in embedded/robotics systems.
 ///
 /// # Parameters
 ///
@@ -87,7 +90,7 @@ macro_rules! impl_serialize_vec {
 ///
 /// The type must:
 /// - Have fields with the exact names provided in the macro invocation
-/// - Have all fields as `f32` types
+/// - Have all fields as `T` where `T: VectorNumber + serde::Deserialize`
 /// - Have fields in the order specified (order matters for deserialization)
 ///
 /// # Examples
@@ -96,16 +99,16 @@ macro_rules! impl_serialize_vec {
 /// use serde::Deserialize;
 ///
 /// #[derive(Debug, PartialEq)]
-/// struct Vec3 {
-///     x: f32,
-///     y: f32,
-///     z: f32,
+/// struct Vec3<T> {
+///     x: T,
+///     y: T,
+///     z: T,
 /// }
 ///
 /// impl_deserialize_vec!(Vec3, x, y, z);
 ///
 /// let bytes = /* binary data */;
-/// let v: Vec3 = deserialize(&bytes).unwrap();
+/// let v: Vec3<f32> = deserialize(&bytes).unwrap();
 /// assert_eq!(v, Vec3 { x: 1.0, y: 2.0, z: 3.0 });
 /// ```
 ///
@@ -113,11 +116,11 @@ macro_rules! impl_serialize_vec {
 /// use serde::Deserialize;
 ///
 /// #[derive(Debug, PartialEq)]
-/// struct Quat {
-///     x: f32,
-///     y: f32,
-///     z: f32,
-///     w: f32,
+/// struct Quat<T> {
+///     x: T,
+///     y: T,
+///     z: T,
+///     w: T,
 /// }
 ///
 /// impl_deserialize_vec!(Quat, x, y, z, w);
@@ -127,35 +130,42 @@ macro_rules! impl_serialize_vec {
 ///
 /// Returns a deserialization error if:
 /// - The sequence has fewer elements than expected fields
-/// - The data type doesn't match the expected format
+/// - The element type doesn't match `T`
 /// - The binary format is corrupted
 ///
 /// # Wire Format
 ///
-/// Expects data serialized with the binary protocol's `Vec2F32`, `Vec3F32`, `Vec4F32`, 
-/// or `QuatF32` token types depending on the number of fields.
+/// Expects data serialized with the binary protocol's `Vec2`, `Vec3`, `Vec4`, 
+/// or `Quat` token types depending on the number of fields, supporting any 
+/// numeric type `T` that implements `VectorNumber`.
 #[macro_export]
 macro_rules! impl_deserialize_vec {
     (
         $VecN:ident,
         $( $field:ident ),+
     ) => {
-        impl<'de> serde::Deserialize<'de> for $VecN {
+        impl<'de, T> serde::Deserialize<'de> for $VecN<'de, T>
+        where
+            T: crate::core::types::VectorNumber + 'de
+        {
             fn deserialize<D>(deserializer: D) -> core::result::Result<Self, D::Error>
             where
                 D: serde::Deserializer<'de>,
             {
-                struct V;
+                struct V<T>(core::marker::PhantomData<T>);
 
-                impl<'de> serde::de::Visitor<'de> for V {
-                    type Value = $VecN;
+                impl<'de, T> serde::de::Visitor<'de> for V<T>
+                where
+                    T: crate::core::types::VectorNumber + 'de
+                {
+                    type Value = $VecN<'de, T>;
 
                     fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
                         write!(
                             formatter,
                             "{} as [{}]",
                             stringify!($VecN),
-                            stringify!($( $field f32 ),+)
+                            stringify!($( $field T ),+)
                         )
                     }
 
@@ -174,18 +184,18 @@ macro_rules! impl_deserialize_vec {
 
                         $(
                             let i = iter.next().unwrap();
-                            let $field: f32 = seq
+                            let $field: T = seq
                                 .next_element()?
                                 .ok_or_else(|| serde::de::Error::invalid_length(i, &self))?;
                         )+
 
-                        Ok($VecN { $( $field ),+ })
+                        Ok($VecN::new($( $field ),+))
                     }
                 }
 
                 const LEN: usize = impl_deserialize_vec!(@count $( $field ),+);
 
-                deserializer.deserialize_newtype_struct(stringify!($VecN), V)
+                deserializer.deserialize_newtype_struct(stringify!($VecN), V::<T>(core::marker::PhantomData))
             }
         }
     };
