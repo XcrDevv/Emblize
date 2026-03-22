@@ -252,8 +252,8 @@ fn serialize_none() {
 
 #[test]
 fn serialize_vec2() {
-    let value = Vec2::new(0.0, 1.0);
-    let expected = vec![TokenTag::Vec2 as u8,
+    let value: Vec2<f32> = Vec2::new(0.0, 1.0);
+    let expected = vec![TokenTag::Vec2 as u8, TokenTag::F32 as u8,
         0x00, 0x00, 0x00, 0x00, 
         0x3F, 0x80, 0x00, 0x00,
     ];
@@ -266,8 +266,8 @@ fn serialize_vec2() {
 
 #[test]
 fn serialize_vec3() {
-    let value = Vec3::new(0.0, 1.0, 2.0);
-    let expected = vec![TokenTag::Vec3 as u8,
+    let value: Vec3<f32> = Vec3::new(0.0, 1.0, 2.0);
+    let expected = vec![TokenTag::Vec3 as u8, TokenTag::F32 as u8,
         0x00, 0x00, 0x00, 0x00, 
         0x3F, 0x80, 0x00, 0x00,
         0x40, 0x00, 0x00, 0x00,
@@ -281,8 +281,8 @@ fn serialize_vec3() {
 
 #[test]
 fn serialize_vec4() {
-    let value = Vec4::new(0.0, 1.0, 2.0, 3.0);
-    let expected = vec![TokenTag::Vec4 as u8,
+    let value: Vec4<f32> = Vec4::new(0.0, 1.0, 2.0, 3.0);
+    let expected = vec![TokenTag::Vec4 as u8, TokenTag::F32 as u8,
         0x00, 0x00, 0x00, 0x00, 
         0x3F, 0x80, 0x00, 0x00,
         0x40, 0x00, 0x00, 0x00,
@@ -298,7 +298,7 @@ fn serialize_vec4() {
 #[test]
 fn serialize_quaternion() {
     let value = Quat::new(0.0, 1.0, 2.0, 3.0);
-    let expected = vec![TokenTag::Quat as u8,
+    let expected = vec![TokenTag::Quat as u8, TokenTag::F32 as u8,
         0x00, 0x00, 0x00, 0x00, 
         0x3F, 0x80, 0x00, 0x00,
         0x40, 0x00, 0x00, 0x00,

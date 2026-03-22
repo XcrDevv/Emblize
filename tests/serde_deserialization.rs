@@ -241,21 +241,21 @@ fn deserialize_none() {
 
 #[test]
 fn deserialize_vec2() {
-    let value = [TokenTag::Vec2 as u8,
+    let value = [TokenTag::Vec2 as u8, TokenTag::F32 as u8,
         0x00, 0x00, 0x00, 0x00, 
         0x3F, 0x80, 0x00, 0x00,
     ];
     let expected = Vec2::new(0.0, 1.0);
 
     assert_eq!(
-        from_bytes::<Vec2>(&value).unwrap(),
+        from_bytes::<Vec2<f32>>(&value).unwrap(),
         expected
     );
 }
 
 #[test]
 fn deserialize_vec3() {
-    let value = [TokenTag::Vec3 as u8,
+    let value = [TokenTag::Vec3 as u8, TokenTag::F32 as u8,
         0x00, 0x00, 0x00, 0x00, 
         0x3F, 0x80, 0x00, 0x00,
         0x40, 0x00, 0x00, 0x00,
@@ -263,14 +263,14 @@ fn deserialize_vec3() {
     let expected = Vec3::new(0.0, 1.0, 2.0);
 
     assert_eq!(
-        from_bytes::<Vec3>(&value).unwrap(),
+        from_bytes::<Vec3<f32>>(&value).unwrap(),
         expected
     );
 }
 
 #[test]
 fn deserialize_vec4() {
-    let value = [TokenTag::Vec4 as u8,
+    let value = [TokenTag::Vec4 as u8, TokenTag::F32 as u8,
         0x00, 0x00, 0x00, 0x00, 
         0x3F, 0x80, 0x00, 0x00,
         0x40, 0x00, 0x00, 0x00,
@@ -279,14 +279,14 @@ fn deserialize_vec4() {
     let expected = Vec4::new(0.0, 1.0, 2.0, 3.0);
 
     assert_eq!(
-        from_bytes::<Vec4>(&value).unwrap(),
+        from_bytes::<Vec4<f32>>(&value).unwrap(),
         expected
     );
 }
 
 #[test]
 fn deserialize_quaternion() {
-    let value = [TokenTag::Quat as u8,
+    let value = [TokenTag::Quat as u8, TokenTag::F32 as u8,
         0x00, 0x00, 0x00, 0x00, 
         0x3F, 0x80, 0x00, 0x00,
         0x40, 0x00, 0x00, 0x00,
