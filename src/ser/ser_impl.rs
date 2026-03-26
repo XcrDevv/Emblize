@@ -1,5 +1,5 @@
 use crate::{
-    core::{types::*, token::TokenTag}, 
+    core::{token::TokenTag, types::*, varint::{varint_usize, varint_usize_max_len}}, 
     error::{Error, Result}, 
     impl_serialize_vec, 
     ser::serializer::{SerState, Serializer, SerializerBuf}
@@ -31,8 +31,7 @@ pub struct TupSerializer<'a, B: SerializerBuf> {
 }
 
 impl<'a, B: SerializerBuf> Serializer<B> {
-    pub fn write_tag(&mut self, token: TokenTag) -> Result<()> {
-
+    fn write_tag(&mut self, token: TokenTag) -> Result<()> {
         match self.state {
             SerState::WriteTypedValue => {
                 self.buf.push_byte(token as u8)?;
@@ -52,6 +51,12 @@ impl<'a, B: SerializerBuf> Serializer<B> {
         }
 
         Ok(())
+    }
+
+    fn write_varint_usize(&mut self, n: usize) -> Result<()> {
+        let mut buf = [0u8; varint_usize_max_len()];
+        let used = varint_usize(n, &mut buf);
+        self.buf.push_bytes(used)
     }
 }
 
@@ -139,14 +144,14 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
 
     fn serialize_str(self, v: &str) -> core::result::Result<Self::Ok, Self::Error> {
         self.write_tag(TokenTag::Str)?;
-        self.buf.push_bytes(&(v.len() as u16).to_be_bytes())?;
+        self.write_varint_usize(v.len())?;
         self.buf.push_bytes(&v.as_bytes())?;
         Ok(())
     }
 
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok> {
         self.write_tag(TokenTag::Bytes)?;
-        self.buf.push_bytes(&(v.len() as u16).to_be_bytes())?;
+        self.write_varint_usize(v.len())?;
         self.buf.push_bytes(&v)?;
         Ok(())
     }
@@ -249,7 +254,7 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq> {
-        let len = len.ok_or(Error::LengthRequired)? as u16;
+        let len = len.ok_or(Error::LengthRequired)?;
         let prev_state = self.state;
 
         if len == 0 {
@@ -262,7 +267,7 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
         }
 
         self.write_tag(TokenTag::Array)?;
-        self.buf.push_bytes(&len.to_be_bytes())?;
+        self.write_varint_usize(len)?;
         self.state = SerState::WriteSeqHeader;
 
         Ok(SeqSerializer { ser: self, wrote_elem_type: false, prev_state })
@@ -274,7 +279,7 @@ fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple> {
 
     if self.state != SerState::WriteVecHeader {
         self.write_tag(TokenTag::Array)?;
-        self.buf.push_bytes(&(len as u16).to_be_bytes())?;
+        self.write_varint_usize(len)?;
         self.state = SerState::WriteSeqHeader;
     }
 
@@ -291,7 +296,7 @@ fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple> {
         len: usize,
     ) -> Result<Self::SerializeStruct> {
         self.write_tag(TokenTag::Struct)?;
-        self.buf.push_byte(len as u8)?;
+        self.write_varint_usize(len)?;
         Ok(self)
     }
     
@@ -334,7 +339,7 @@ fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple> {
         } else {
             self.buf.push_byte(variant_index as u8 | 0x80)?;
             self.buf.push_byte(TokenTag::Struct as u8)?;
-            self.buf.push_byte(len as u8)?;
+            self.write_varint_usize(len)?;
             Ok(self)
         }
     }
@@ -376,15 +381,6 @@ impl<'a, B: SerializerBuf> ser::SerializeTuple for TupSerializer<'a, B> {
 
         match self.first_tag {
             None => {
-                // if self.ser.state == SerState::WriteVecHeader {
-                //     self.first_tag = Some(TokenTag::try_from(TokenTag::F32).unwrap());
-                //     value.serialize(&mut *self.ser)?;
-                // } else {
-                //     let pos_before = self.ser.buf.as_slice().len();
-                //     value.serialize(&mut *self.ser)?;
-                //     let written_tag = self.ser.buf.as_slice()[pos_before];
-                //     self.first_tag = Some(TokenTag::try_from(written_tag).unwrap());
-                // }
                 let pos_before = self.ser.buf.as_slice().len();
                 value.serialize(&mut *self.ser)?;
                 let written_tag = self.ser.buf.as_slice()[pos_before];
@@ -477,7 +473,7 @@ impl<'a, B: SerializerBuf> ser::SerializeStruct for &'a mut Serializer<B> {
         T: ?Sized + Serialize,
     {
         let temp = self.state;
-        self.buf.push_bytes(&(key.len() as u16).to_be_bytes())?;
+        self.write_varint_usize(key.len())?;
         self.buf.push_bytes(&key.as_bytes())?;
         self.state = SerState::WriteTypedValue;
         value.serialize(&mut **self)?;
@@ -498,7 +494,7 @@ impl<'a, B: SerializerBuf> ser::SerializeStructVariant for &'a mut Serializer<B>
     where
         T: ?Sized + Serialize,
     {
-        self.buf.push_bytes(&(key.len() as u16).to_be_bytes())?;
+        self.write_varint_usize(key.len())?;
         self.buf.push_bytes(&key.as_bytes())?;
         value.serialize(&mut **self)
     }

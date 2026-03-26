@@ -32,9 +32,52 @@ impl<'de> Deserializer<'de> {
     }
 
     fn read_str(&mut self) -> Result<&'de str> {
-        let len = self.input.read_number::<u16>()? as usize;
+        let len = self.read_variant_usize()?;
         let bytes = self.input.take_bytes(len)?;
         core::str::from_utf8(bytes).map_err(|_| Error::NoUTF8)
+    }
+
+    #[cfg(target_pointer_width = "16")]
+    #[inline(always)]
+    fn read_variant_usize(&mut self) -> Result<usize> {
+        self.read_variant_n::<16>()
+    }
+
+    #[cfg(target_pointer_width = "32")]
+    #[inline(always)]
+    fn read_variant_usize(&mut self) -> Result<usize> {
+        self.read_variant_n::<32>()
+    }
+
+    #[cfg(target_pointer_width = "64")]
+    #[inline(always)]
+    fn read_variant_usize(&mut self) -> Result<usize> {
+        self.read_variant_n::<64>()
+    }
+
+    #[inline]
+    fn read_variant_n<const N: usize>(&mut self) -> Result<usize> {
+        let mut result: usize = 0;
+        let mut shift: usize = 0;
+
+        let mut buf = [0u8; 1];
+
+        loop {
+            self.input.read_exact(&mut buf)?;
+            let byte = buf[0];
+
+            result |= ((byte & 0x7F) as usize) << shift;
+
+            if byte < 0x80 {
+                return Ok(result);
+            }
+
+            shift += 7;
+
+            if shift >= N {
+                return Err(Error::InvalidVarint);
+            }
+        }
     }
 
     fn expected_tag(&mut self, token_tag: TokenTag) -> Result<()> {
@@ -200,7 +243,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: de::Visitor<'de>,
     {
         self.expected_tag(TokenTag::Bytes)?;
-        let len = self.input.read_number::<u16>()? as usize;
+        let len = self.read_variant_usize()?;
         let bytes = self.input.take_bytes(len)?;
         visitor.visit_borrowed_bytes(bytes)
     }
@@ -221,14 +264,12 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         match self.state {
             DeState::ReadTypedValue => {
                 if TokenTag::Some as u8 != token && TokenTag::None as u8 != token {
-                    println!("got: 0x{:0>2x}", token);
                     return Err(Error::ExpectedType("Some or None"))
                 }
             }
             DeState::ReadSeq(ref mut arr_type) => {
                 if let Some(arr_type) = arr_type.take() {
                     if TokenTag::Some as u8 != arr_type && TokenTag::None as u8 != arr_type {
-                        println!("got: 0x{:0>2x}", token);
                         return Err(Error::ExpectedType("Some or None"))
                     }
                 }
@@ -326,7 +367,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         let len = match self.state {
             DeState::ReadSeq(_) => {
-                let len = self.input.read_number::<u16>()? as usize;
+                let len = self.read_variant_usize()?;
                 let arr_type = self.input.read_byte()?;
                 self.state = DeState::ReadSeq(Some(arr_type));
                 len
@@ -336,7 +377,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
                 if tag == TokenTag::EmptyArr as u8 {
                     0
                 } else {
-                    let len = self.input.read_number::<u16>()? as usize;
+                    let len = self.read_variant_usize()?;
                     let arr_type = self.input.read_byte()?;
                     self.state = DeState::ReadSeq(Some(arr_type));
                     len
@@ -364,7 +405,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         
         let len = match self.state {
             DeState::ReadSeq(_) => {
-                let len = self.input.read_number::<u16>()? as usize;
+                let len = self.read_variant_usize()?;
                 let arr_type = self.input.read_byte()?;
                 self.state = DeState::ReadSeq(Some(arr_type));
                 len
@@ -374,7 +415,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
                 if tag == TokenTag::EmptyArr as u8 {
                     0
                 } else {
-                    let len = self.input.read_number::<u16>()? as usize;
+                    let len = self.read_variant_usize()?;
                     let arr_type = self.input.read_byte()?;
                     self.state = DeState::ReadSeq(Some(arr_type));
                     len
@@ -421,10 +462,10 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: de::Visitor<'de>,
     {
         self.expected_tag(TokenTag::Struct)?; 
-        let field_count = self.input.read_byte()?;
+        let field_count = self.read_variant_usize()?;
         visitor.visit_map(SizedCollection {
             de: self,
-            remaining: field_count as usize,
+            remaining: field_count,
         })
     }
 
@@ -559,7 +600,7 @@ impl<'de, 'a> VariantAccess<'de> for Enum<'a, 'de> {
         V: de::Visitor<'de>,
     {
         TokenTag::Struct.matches(self.de.input.read_byte()?)?;
-        let len = self.de.input.read_number::<u8>()? as usize;
+        let len = self.de.read_variant_usize()?;
         if len != fields.len() {
             return Err(Error::MissmatchLength { expected: fields.len(), got: len });
         }

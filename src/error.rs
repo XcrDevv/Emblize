@@ -33,6 +33,9 @@ pub enum Error {
     #[error("Deserialization not supported for {0} type")]
     DeUnsupported(&'static str),
 
+    #[error("Varint too large")]
+    InvalidVarint,
+
     #[error("Length required")]
     LengthRequired,
     
