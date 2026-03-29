@@ -130,10 +130,10 @@ pub enum Token<'a> {
     DurationMillis(Name<'a>, i64),
     DurationMicros(Name<'a>, i64),
 
-    Vec2(Name<'a>, [f32; 2]),
-    Vec3(Name<'a>, [f32; 3]),
-    Vec4(Name<'a>, [f32; 4]),
-    Quat(Name<'a>, [f32; 4]),
+    Vec2(Name<'a>, Box<[Token<'a>; 2]>),
+    Vec3(Name<'a>, Box<[Token<'a>; 3]>),
+    Vec4(Name<'a>, Box<[Token<'a>; 4]>),
+    Quat(Name<'a>, Box<[Token<'a>; 4]>),
 
     Struct(Option<Cow<'a, str>>, Vec<Token<'a>>),
 }

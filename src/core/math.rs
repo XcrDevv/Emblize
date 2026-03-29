@@ -1,41 +1,36 @@
-use std::marker::PhantomData;
-
 use serde::{Deserialize, Serialize};
 
 use crate::core::utils::endian::BytesNum;
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub struct Vec2<'de, T>
+pub struct Vec2<T>
 where 
-    T: BytesNum + Serialize + Deserialize<'de>
+    T: BytesNum + Serialize + for<'de> Deserialize<'de>
 {
     pub x: T,
     pub y: T,
-    _marker: PhantomData<&'de ()>
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub struct Vec3<'de, T>
+pub struct Vec3<T>
 where 
-    T: BytesNum + Serialize + Deserialize<'de>
+    T: BytesNum + Serialize + for<'de> Deserialize<'de>
 {
     pub x: T,
     pub y: T,
     pub z: T,
-    _marker: PhantomData<&'de ()>
 }
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub struct Vec4<'de, T> 
+pub struct Vec4<T> 
 where 
-    T: BytesNum + Serialize + Deserialize<'de>
+    T: BytesNum + Serialize + for<'de> Deserialize<'de>
 {
     pub x: T,
     pub y: T,
     pub z: T,
     pub w: T,
-    _marker: PhantomData<&'de ()>
 }
 
 #[repr(C)]
@@ -54,12 +49,12 @@ where
     T: BytesNum + Serialize + for<'de> Deserialize<'de> + Copy,
 {}
 
-impl<'de, T> Vec2<'de, T>
+impl<T> Vec2<T>
 where 
     T: VectorNumber
 {
     pub fn new(x: T, y: T) -> Self {
-        return Self { x, y, _marker: PhantomData };
+        return Self { x, y};
     }
 
     pub fn as_arr(&self) -> [T; 2] {
@@ -67,13 +62,13 @@ where
     }
 }
 
-impl<'de, T> Vec3<'de, T>
+impl<T> Vec3<T>
 where
     T: VectorNumber
 {
 
     pub fn new(x: T, y: T, z: T ) -> Self {
-        return Self { x, y, z,_marker: PhantomData };
+        return Self { x, y, z};
     }
 
     pub fn as_arr(&self) -> [T; 3] {
@@ -81,12 +76,12 @@ where
     }
 }
 
-impl<'de, T> Vec4<'de, T>
+impl<T> Vec4<T>
 where 
     T: VectorNumber
 {
     pub fn new(x: T, y: T, z: T, w: T) -> Self {
-        return Self { x, y, z, w, _marker: PhantomData };
+        return Self { x, y, z, w};
     }
 
     pub fn as_arr(&self) -> [T; 4] {
