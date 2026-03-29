@@ -56,7 +56,7 @@ macro_rules! impl_serialize_vec {
         $VecN:ident,
         $( $field:ident ),+
     ) => {
-        impl<'de, T> serde::Serialize for $VecN<'de, T>
+        impl<T> serde::Serialize for $VecN<T>
         where 
             T: crate::core::types::VectorNumber
         {
@@ -144,7 +144,7 @@ macro_rules! impl_deserialize_vec {
         $VecN:ident,
         $( $field:ident ),+
     ) => {
-        impl<'de, T> serde::Deserialize<'de> for $VecN<'de, T>
+        impl<'de, T> serde::Deserialize<'de> for $VecN<T>
         where
             T: crate::core::types::VectorNumber + 'de
         {
@@ -158,7 +158,7 @@ macro_rules! impl_deserialize_vec {
                 where
                     T: crate::core::types::VectorNumber + 'de
                 {
-                    type Value = $VecN<'de, T>;
+                    type Value = $VecN<T>;
 
                     fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
                         write!(
