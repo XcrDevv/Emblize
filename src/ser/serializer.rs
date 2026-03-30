@@ -1,4 +1,4 @@
-use crate::{core::token::TokenTag, error::Result};
+use crate::{core::{token::TokenTag, varint::{varint_usize, varint_usize_max_len}}, error::Result};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum SerState {
@@ -12,7 +12,6 @@ pub enum SerState {
 pub struct Serializer<B: SerializerBuf> {
     pub buf: B,
     pub state: SerState,
-    pub found_token: u8,
 }
 
 
@@ -21,8 +20,13 @@ impl<B: SerializerBuf> Serializer<B> {
         Self {
             buf: B::new(),
             state: SerState::WriteTypedValue,
-            found_token: 0,
         }
+    }
+
+    pub fn write_varint_usize(&mut self, n: usize) -> Result<()> {
+        let mut buf = [0u8; varint_usize_max_len()];
+        let used = varint_usize(n, &mut buf);
+        self.buf.push_bytes(used)
     }
 }
 

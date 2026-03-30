@@ -1,5 +1,5 @@
 use crate::{
-    core::{token::TokenTag, types::*, varint::{varint_usize, varint_usize_max_len}}, 
+    core::{token::TokenTag, types::*}, 
     error::{Error, Result}, 
     impl_serialize_vec, 
     ser::serializer::{SerState, Serializer, SerializerBuf}
@@ -51,12 +51,6 @@ impl<'a, B: SerializerBuf> Serializer<B> {
         }
 
         Ok(())
-    }
-
-    fn write_varint_usize(&mut self, n: usize) -> Result<()> {
-        let mut buf = [0u8; varint_usize_max_len()];
-        let used = varint_usize(n, &mut buf);
-        self.buf.push_bytes(used)
     }
 }
 
