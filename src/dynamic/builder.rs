@@ -80,8 +80,10 @@ impl<'a> StructBuilder<'a> {
         }
     }
 
-    pub fn map(mut self, builder: StructBuilder<'a>) -> Self {
-        let token = builder.build();
+    pub fn map<F>(mut self, name: &'a str, b: F) -> Self
+    where F: Fn(StructBuilder) -> StructBuilder
+    {
+        let token = b(StructBuilder::new(name)).build();
         self.tokens.push(token);
         self
     }
