@@ -30,7 +30,7 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 use alloc::borrow::Cow;
 
-use crate::core::token::{Token, TokenTag};
+use crate::{core::token::{Token, TokenTag}, error::{Error, Result}, types::VectorNumber};
 
 /// A builder for creating a structured [`Token::Root`] with named fields.
 ///
@@ -93,8 +93,58 @@ impl<'a> StructBuilder<'a> {
         self
     }
 
-    pub fn enum_(mut self, name: &'a str, variant_index: u8, token: Option<Token<'a>>) -> Self {
+    pub fn variant(mut self, name: &'a str, variant_index: u8, token: Option<Token<'a>>) -> Self {
         self.tokens.push(Token::Enum(Some(name.into()), variant_index, token.map(Box::new)));
+        self
+    }
+
+    pub fn array<I>(mut self, name: &'a str, values: I) -> Result<Self>
+    where
+        I: IntoIterator<Item = Token<'a>>,
+    {
+        let mut iter = values.into_iter();
+
+        let first_token = match iter.next() {
+            Some(token) => token,
+            None => {
+                self.tokens.push(Token::EmptyArr(Some(name.into())));
+                return Ok(self);
+            }
+        };
+
+        let first_tag = TokenTag::from(&first_token);
+
+        let mut collected = Vec::new();
+        collected.push(first_token);
+
+        for token in iter {
+            let tag = TokenTag::from(&token);
+            if tag != first_tag {
+                return Err(Error::HeterogeneousTuple {
+                    expected: first_tag as u8,
+                    got: tag as u8,
+                });
+            }
+            collected.push(token);
+        }
+
+        self.tokens.push(Token::Array(
+            Some(name.into()),
+            first_tag,
+            collected.into(),
+        ));
+
+        Ok(self)
+    }
+
+    pub unsafe fn array_unchecked(mut self, name: &'a str, values: &'a [Token<'a>]) -> Self {
+        if values.is_empty() {
+            self.tokens.push(Token::EmptyArr(None));
+            return self;
+        }
+
+        let array_type = TokenTag::from(&values[0]);
+        self.tokens.push(Token::Array(Some(name.into()), array_type, values.into()));
         self
     }
 
@@ -105,6 +155,46 @@ impl<'a> StructBuilder<'a> {
 
     pub fn none(mut self, name: &'a str) -> Self {
         self.tokens.push(Token::None(Some(name.into())));
+        self
+    }
+
+    pub fn vec2<'b, T> (mut self, name: &'a str, values: &'b [T; 2]) -> Self 
+    where 
+        T: VectorNumber + Into<Token<'a>>
+    {
+        let tokens: Vec<Token> = values.iter().map(|&v| v.into()).collect();
+        let token = Token::Vec2(Some(name.into()), Box::new(tokens.try_into().unwrap()));
+        self.tokens.push(token);
+        self
+    }
+
+    pub fn vec3<'b, T>(mut self, name: &'a str, values: &'b [T; 3]) -> Self
+    where 
+        T: VectorNumber + Into<Token<'a>>
+    {
+        let tokens: Vec<Token> = values.iter().map(|&v| v.into()).collect();
+        let token = Token::Vec3(Some(name.into()), Box::new(tokens.try_into().unwrap()));
+        self.tokens.push(token);
+        self
+    }
+
+    pub fn vec4<'b, T>(mut self, name: &'a str, values: &'b [T; 4]) -> Self 
+        where 
+        T: VectorNumber + Into<Token<'a>>
+    {
+        let tokens: Vec<Token> = values.iter().map(|&v| v.into()).collect();
+        let token = Token::Vec4(Some(name.into()), Box::new(tokens.try_into().unwrap()));
+        self.tokens.push(token);
+        self
+    }
+
+    pub fn quaternion<'b, T>(mut self, name: &'a str, values: &'b [T; 4]) -> Self 
+        where 
+        T: VectorNumber + Into<Token<'a>>
+    {
+        let tokens: Vec<Token> = values.iter().map(|&v| v.into()).collect();
+        let token = Token::Quat(Some(name.into()), Box::new(tokens.try_into().unwrap()));
+        self.tokens.push(token);
         self
     }
 
@@ -145,40 +235,6 @@ macro_rules! builder_methods {
     };
 }
 
-/// Implements fluent builder methods for array token field types.
-///
-/// Each generated method appends an array field of the given element type
-/// to the structure:
-///
-/// - `u8_array("flags", &[1, 2, 3])` → adds a [`Token::Array`] of [`Token::U8`] named `"flags"`
-/// - `f32_array("values", &[1.0, 2.0])` → adds a [`Token::Array`] of [`Token::F32`] named `"values"`
-///
-/// Only `Copy` types are supported by this macro. For non-`Copy` types
-/// such as strings, options, enums, and structs, see the manually
-/// implemented methods [`str_arr`](StructBuilder::str_arr),
-/// [`option_arr`](StructBuilder::option_arr),
-/// [`enum_arr`](StructBuilder::enum_arr), and
-/// [`struct_arr`](StructBuilder::struct_arr).
-///
-/// These methods consume and return `self` to allow chaining.
-macro_rules! builder_array_methods {
-    (
-        $(
-            $fn_name:ident : $variant:ident ( $ty:ty )
-        ),* $(,)?
-    ) => {
-        impl<'a> StructBuilder<'a> {
-            $(
-                pub fn $fn_name(mut self, name: &'a str, values: &[$ty]) -> Self {
-                    let vec = values.iter().map(|&v| Token::$variant(None, v.into())).collect();
-                    self.tokens.push(Token::Array(Some(name.into()), TokenTag::$variant, vec));
-                    self
-                }
-            )*
-        }
-    };
-}
-
 builder_methods! {
     bool: Bool(bool),
     u8: U8(u8),
@@ -203,61 +259,8 @@ builder_methods! {
     duration_ms: DurationMillis(i64),
     duration_us: DurationMicros(i64),
 
-    vec2: Vec2([f32; 2]),
-    vec3: Vec3([f32; 3]),
-    vec4: Vec4([f32; 4]),
-    quaternion: Quat([f32; 4]),
-}
-
-builder_array_methods! {
-    bool_array: Bool(bool),
-    u8_array: U8(u8),
-    u16_array: U16(u16),
-    u32_array: U32(u32),
-    u64_array: U64(u64),
-    i8_array: I8(i8),
-    i16_array: I16(i16),
-    i32_array: I32(i32),
-    i64_array: I64(i64),
-    f32_array: F32(f32),
-    f64_array: F64(f64),
-    timestamp_ms_array: TimestampMillis(u64),
-    timestamp_us_array: TimestampMicros(u64),
-    ms_since_boot_array: MillisSinceBoot(u64),
-    us_since_boot_array: MicrosSinceBoot(u64),
-    duration_ms_array: DurationMillis(i64),
-    duration_us_array: DurationMicros(i64),
-    vec2_array: Vec2([f32; 2]),
-    vec3_array: Vec3([f32; 3]),
-    vec4_array: Vec4([f32; 4]),
-    quaternion_array: Quat([f32; 4]),
-}
-
-impl<'a> StructBuilder<'a> {
-    pub fn str_array(mut self, name: &'a str, values: &[&'a str]) -> Self {
-        let vec = values.iter().map(|&v| Token::Str(None, v.into())).collect();
-        self.tokens.push(Token::Array(Some(name.into()), TokenTag::Str, vec));
-        self
-    }
-
-    pub fn enum_array(mut self, name: &'a str, values: &[Token<'a>]) -> Self {
-        self.tokens.push(Token::Array(Some(name.into()), TokenTag::Enum, values.to_vec()));
-        self
-    }
-
-    pub fn option_array(mut self, name: &'a str, values: &[Option<Token<'a>>]) -> Self {
-        let vec = values.iter()
-            .map(|v| match v {
-                Some(t) => Token::Some(None, Box::new(t.clone())),
-                None => Token::None(None),
-            })
-            .collect();
-        self.tokens.push(Token::Array(Some(name.into()), TokenTag::Enum, vec));
-        self
-    }
-
-    pub fn struct_array(mut self, name: &'a str, values: &[Token<'a>]) -> Self {
-        self.tokens.push(Token::Array(Some(name.into()), TokenTag::Struct, values.to_vec()));
-        self
-    }
+    // vec2: Vec2([f32; 2]),
+    // vec3: Vec3([f32; 3]),
+    // vec4: Vec4([f32; 4]),
+    // quaternion: Quat([f32; 4]),
 }

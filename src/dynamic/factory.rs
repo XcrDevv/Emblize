@@ -23,66 +23,53 @@
 
 use alloc::boxed::Box;
 
-use crate::core::token::{Token, TokenTag};
+use crate::{core::token::{Token, TokenTag}, error::{Error, Result}, types::VectorNumber};
 
-macro_rules! impl_array_factory {
-    ($fn_name:ident, $ty:ty, $variant:ident) => {
-        pub fn $fn_name<'a>(values: &[$ty]) -> Token<'a> {
-            let vec = values.iter().map(|&v| Token::$variant(None, v)).collect();
-            Token::Array(None, TokenTag::$variant, vec)
-        }
+macro_rules! type_factory {
+    (
+        $(
+            $fn_name:ident : $variant:ident ( $ty:ty )
+        ),* $(,)?
+    ) => {
+        $(
+            pub fn $fn_name<'a>(value: $ty) -> Token<'a> {
+                Token::$variant(None, value)
+            }
+        )*
     };
 }
 
-pub fn bool<'a>(value: bool) -> Token<'a> {
-    Token::Bool(None, value)
-}
+type_factory! {
+    bool: Bool(bool),
+    u8: U8(u8),
+    u16: U16(u16),
+    u32: U32(u32),
+    u64: U64(u64),
+    i8: I8(i8),
+    i16: I16(i16),
+    i32: I32(i32),
+    i64: I64(i64),
+    f32: F32(f32),
+    f64: F64(f64),
 
-pub fn u8<'a>(value: u8) -> Token<'a> {
-    Token::U8(None, value)
-}
+    timestamp_ms: TimestampMillis(u64),
+    timestamp_us: TimestampMicros(u64),
+    ms_since_boot: MillisSinceBoot(u64),
+    us_since_boot: MicrosSinceBoot(u64),
+    duration_ms: DurationMillis(i64),
+    duration_us: DurationMicros(i64),
 
-pub fn u16<'a>(value: u16) -> Token<'a> {
-    Token::U16(None, value)
-}
-
-pub fn u32<'a>(value: u32) -> Token<'a> {
-    Token::U32(None, value)
-}
-
-pub fn u64<'a>(value: u64) -> Token<'a> {
-    Token::U64(None, value)
-}
-
-pub fn i8<'a>(value: i8) -> Token<'a> {
-    Token::I8(None, value)
-}
-
-pub fn i16<'a>(value: i16) -> Token<'a> {
-    Token::I16(None, value)
-}
-
-pub fn i32<'a>(value: i32) -> Token<'a> {
-    Token::I32(None, value)
-}
-
-pub fn i64<'a>(value: i64) -> Token<'a> {
-    Token::I64(None, value)
-}
-
-pub fn f32<'a>(value: f32) -> Token<'a> {
-    Token::F32(None, value)
-}
-
-pub fn f64<'a>(value: f64) -> Token<'a> {
-    Token::F64(None, value)
+    // vec2: Vec2([f32; 2]),
+    // vec3: Vec3([f32; 3]),
+    // vec4: Vec4([f32; 4]),
+    // quaternion: Quat([f32; 4]),
 }
 
 pub fn str<'a>(value: &'a str) -> Token<'a> {
     Token::Str(None, value.into())
 }
 
-pub fn enum_<'a>(variant_index: u8, value: Option<Token<'a>>) -> Token<'a> {
+pub fn variant<'a>(variant_index: u8, value: Option<Token<'a>>) -> Token<'a> {
     Token::Enum(None, variant_index, value.map(Box::new))
 }
 
@@ -94,98 +81,104 @@ pub fn option_none<'a>() -> Token<'a> {
     Token::None(None)
 }
 
-pub fn array<'a>(values: &'a [Token<'a>]) -> Token<'a> {
-    Token::Array(None, TokenTag::Array, values.into())
+/// Creates a typed array token from a list of tokens, returning an `Error` if the elements are heterogeneous (not the same type).
+pub fn array<'a, I>(values: I) -> Result<Token<'a>>
+where
+    I: IntoIterator<Item = Token<'a>>,
+{
+
+    let mut iter = values.into_iter();
+
+    let first_token = match iter.next() {
+        Some(token) => token,
+        None => {
+            return Ok(Token::EmptyArr(None))
+        }
+    };
+
+    let first_tag = TokenTag::from(&first_token);
+
+    let mut collected = Vec::new();
+    collected.push(first_token);
+
+    for token in iter {
+        let tag = TokenTag::from(&token);
+        if tag != first_tag {
+            return Err(Error::HeterogeneousTuple {
+                expected: first_tag as u8,
+                got: tag as u8,
+            });
+        }
+        collected.push(token);
+    }
+
+    Ok(Token::Array(None, first_tag, collected))
+}
+
+/// Creates a typed array token without checking for type homogeneity.
+/// 
+/// # Safety
+/// All tokens in `values` must be of the same type.
+pub unsafe fn array_unchecked<'a>(values: &'a [Token<'a>]) -> Token<'a> {
+    if values.is_empty() {
+        return Token::EmptyArr(None)
+    }
+
+    let array_type = TokenTag::from(&values[0]);
+    Token::Array(None, array_type, values.into())  
 }
 
 pub fn bytes<'a>(values: &'a[u8]) -> Token<'a> {
     Token::Bytes(None, values.into())
 }
 
-impl_array_factory!(bool_array, bool, Bool);
-impl_array_factory!(u8_array, u8, U8);
-impl_array_factory!(u16_array, u16, U16);
-impl_array_factory!(u32_array, u32, U32);
-impl_array_factory!(u64_array, u64, U64);
-impl_array_factory!(i8_array, i8, I8);
-impl_array_factory!(i16_array, i16, I16);
-impl_array_factory!(i32_array, i32, I32);
-impl_array_factory!(i64_array, i64, I64);
-impl_array_factory!(f32_array, f32, F32);
-impl_array_factory!(f64_array, f64, F64);
-
-pub fn str_array<'a>(values: &'a[&str]) -> Token<'a> {
-    let vec = values.iter().map(|&v| Token::Str(None, v.into())).collect();
-    Token::Array(None, TokenTag::Array, vec)
+pub fn vec2<'a, T: VectorNumber + Into<Token<'a>>>(values: &'a [T; 2]) -> Token<'a> {
+    let tokens: Vec<Token> = values.iter().map(|&v| v.into()).collect();
+    Token::Vec2(None, Box::new(tokens.try_into().unwrap()))
 }
 
-pub fn enum_array<'a>(values: &'a [Token<'a>]) -> Token<'a> {
-    Token::Array(None, TokenTag::Enum, values.into())
+pub fn vec3<'a, T: VectorNumber + Into<Token<'a>>>(values: &'a [T; 3]) -> Token<'a> {
+    let tokens: Vec<Token> = values.iter().map(|&v| v.into()).collect();
+    Token::Vec3(None, Box::new(tokens.try_into().unwrap()))
 }
 
-pub fn option_array<'a>(values: &'a [Option<Token<'a>>]) -> Token<'a> {
-    let vec = values.iter()
-        .map(|v| match v {
-            Some(t) => Token::Some(None, Box::new(t.clone())),
-            None => Token::None(None),
-        })
-        .collect();
-    Token::Array(None, TokenTag::Enum, vec)
+pub fn vec4<'a, T: VectorNumber + Into<Token<'a>>>(values: &'a [T; 4]) -> Token<'a> {
+    let tokens: Vec<Token> = values.iter().map(|&v| v.into()).collect();
+    Token::Vec4(None, Box::new(tokens.try_into().unwrap()))
 }
 
-impl_array_factory!(timestamp_ms_array, u64, TimestampMillis);
-impl_array_factory!(timestamp_us_array, u64, TimestampMicros);
-impl_array_factory!(ms_since_boot_array, u64, MillisSinceBoot);
-impl_array_factory!(us_since_boot_array, u64, MicrosSinceBoot);
-impl_array_factory!(duration_ms_array, i64, DurationMillis);
-impl_array_factory!(duration_us_array, i64, DurationMicros);
-
-impl_array_factory!(vec2_array, [f32; 2], Vec2);
-impl_array_factory!(vec3_array, [f32; 3], Vec3);
-impl_array_factory!(vec4_array, [f32; 4], Vec4);
-impl_array_factory!(quaternion_array, [f32; 4], Quat);
-
-
-pub fn struct_array<'a>(values: &'a [Token<'a>]) -> Token<'a> {
-    Token::Array(None, TokenTag::Struct, values.into())
+pub fn quaternion<'a, T: VectorNumber + Into<Token<'a>>>(values: &'a [T; 4]) -> Token<'a> {
+    let tokens: Vec<Token> = values.iter().map(|&v| v.into()).collect();
+    Token::Quat(None, Box::new(tokens.try_into().unwrap()))
 }
 
-pub fn timestamp_ms<'a>(value: u64) -> Token<'a> {
-    Token::TimestampMillis(None, value)
+macro_rules! impl_from_number {
+    (
+        $(
+            $variant:ident : $ty:ty
+        ),* $(,)?
+    ) => {
+        $(
+            impl<'a> From<$ty> for Token<'a> {
+                fn from(value: $ty) -> Self {
+                    Token::$variant(None, value)
+                }
+            }
+        )*
+    };
 }
 
-pub fn timestamp_us<'a>(value: u64) -> Token<'a> {
-    Token::TimestampMicros(None, value)
-}
+impl_from_number! {
+    Bool: bool,
+    U8: u8,
+    U16: u16,
+    U32: u32,
+    U64: u64,
+    I8: i8,
+    I16: i16,
+    I32: i32,
+    I64: i64,
+    F32: f32,
+    F64: f64,
 
-pub fn ms_since_boot<'a>(value: u64) -> Token<'a> {
-    Token::MillisSinceBoot(None, value)
-}
-
-pub fn us_since_boot<'a>(value: u64) -> Token<'a> {
-    Token::MicrosSinceBoot(None, value)
-}
-
-pub fn duration_ms<'a>(value: i64) -> Token<'a> {
-    Token::DurationMillis(None, value)
-}
-
-pub fn duration_us<'a>(value: i64) -> Token<'a> {
-    Token::DurationMicros(None, value)
-}
-
-pub fn vec2<'a>(values: [f32; 2]) -> Token<'a> {
-    Token::Vec2(None, values)
-}
-
-pub fn vec3<'a>(values: [f32; 3]) -> Token<'a> {
-    Token::Vec3(None, values)
-}
-
-pub fn vec4<'a>(values: [f32; 4]) -> Token<'a> {
-    Token::Vec4(None, values)
-}
-
-pub fn quaternion<'a>(values: [f32; 4]) -> Token<'a> {
-    Token::Quat(None, values)
 }
