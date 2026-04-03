@@ -1,4 +1,3 @@
-use core::fmt::Debug;
 use alloc::boxed::Box;
 use alloc::vec;
 use alloc::{
@@ -15,13 +14,15 @@ use crate::core::{reader::Reader, utils::endian::BytesNum};
 
 impl<'de> Deserializer<'de> {
     pub fn read_any(&mut self) -> Result<Token<'de>> {
-        let name = if self.state == DeState::ReadUntypedValue {
-            None
-        } else {
-            Some(Cow::Owned(self.read_string()?))
+        let name = match self.state {
+            DeState::ReadTypedValue => Some(Cow::Owned(self.read_string()?)),
+            _ => None,
         };
 
-        let tag = self.input.read_byte()?;
+        let tag = match self.state {
+            DeState::ReadSeq(t)  => t.unwrap(),
+            _ => self.input.read_byte()?
+        };
 
         let token: Token<'de> = match TokenTag::try_from(tag).map_err(|_| Error::UnknownDType(tag))? {
             TokenTag::Bool => Token::Bool(name, self.input.read_byte()? != 0),
@@ -95,17 +96,18 @@ impl<'de> Deserializer<'de> {
 
             TokenTag::EmptyArr => Token::EmptyArr(name),
             TokenTag::Array => {
-                self.state = DeState::ReadUntypedValue;
-
-                let size = self.input.read_number::<u16>()? as usize;
+                let size = self.read_variant_usize()?;
                 let mut tokens = Vec::with_capacity(size);
                 let arr_type = TokenTag::try_from_primitive(self.input.read_byte()?)
-                    .map_err(|_| Error::InvalidToken)?;
-
+                .map_err(|_| Error::InvalidToken)?;
+            
+                let prev = self.state;
+                self.state = DeState::ReadSeq(Some(arr_type as u8));
                 for _ in 0..size {
                     let token = self.read_any()?;
                     tokens.push(token);
                 }
+                self.state = prev;
                 
                 Token::Array(name, arr_type, tokens)
             }
@@ -118,24 +120,24 @@ impl<'de> Deserializer<'de> {
             TokenTag::DurationMillis => Token::DurationMillis(name, self.input.read_number()?),
             TokenTag::DurationMicros => Token::DurationMicros(name, self.input.read_number()?),
 
-            TokenTag::Vec2 => Token::Vec2(name, self.read_fixed_seq()?),
-            TokenTag::Vec3 => Token::Vec3(name, self.read_fixed_seq()?),
-            TokenTag::Vec4 => Token::Vec4(name, self.read_fixed_seq()?),
-            TokenTag::Quat => Token::Quat(name, self.read_fixed_seq()?),
+            TokenTag::Vec2 => Token::Vec2(name, Box::new(self.read_fixed_seq()?)),
+            TokenTag::Vec3 => Token::Vec3(name, Box::new(self.read_fixed_seq()?)),
+            TokenTag::Vec4 => Token::Vec4(name, Box::new(self.read_fixed_seq()?)),
+            TokenTag::Quat => Token::Quat(name, Box::new(self.read_fixed_seq()?)),
         };
 
         Ok(token)
     }
 
     pub fn read_string(&mut self) -> Result<String> {
-        let len = self.input.read_number::<u16>()? as usize;
+        let len = self.read_variant_usize()?;
         let string = self.input.read_str_uft8(len)?;
         Ok(string.to_owned())
     }
 
     fn read_seq<T: BytesNum + Clone>(&mut self) -> Result<Cow<'de, [T]>> {
         let num_size = size_of::<T>();
-        let len = self.input.read_number::<u16>()? as usize;
+        let len = self.read_variant_usize()?;
 
         let mut buf = vec![0; len * num_size];
         self.input.read_exact(&mut buf)?;
@@ -151,21 +153,25 @@ impl<'de> Deserializer<'de> {
         Ok(Cow::Owned(values))
     }
 
-    fn read_fixed_seq<T: BytesNum + Debug, const N: usize> (
+    fn read_fixed_seq<const N: usize> (
         &mut self,
-    ) -> Result<[T; N]> {
-        let mut buf = vec![0; N * size_of::<f32>()];
-        self.input.read_exact(&mut buf)?;
-        let values: Vec<T> = buf
-            .chunks_exact(size_of::<T>())
-            .map(|chunk| {
-                let bytes = T::Bytes::try_from(chunk).ok().unwrap();
-                T::from_be_bytes(bytes)
-            })
-            .collect();
+    ) -> Result<[Token<'de>; N]> {
+        let is_field = self.state == DeState::ReadTypedValue;
+        self.state = DeState::ReadUntypedValue;
 
-        let arr: [T; N] = values.try_into().unwrap();
-        Ok(arr)
+        let _ = self.input.read_byte()?;
+        let mut vec = vec![];
+
+        for _ in 0..N {
+            let token = self.read_any()?;
+            vec.push(token);
+        }
+
+        if is_field {
+            self.state = DeState::ReadTypedValue
+        }
+
+        Ok(vec.try_into().unwrap())
     }
 }
 
