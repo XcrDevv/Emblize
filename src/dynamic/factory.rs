@@ -58,11 +58,6 @@ type_factory! {
     us_since_boot: MicrosSinceBoot(u64),
     duration_ms: DurationMillis(i64),
     duration_us: DurationMicros(i64),
-
-    // vec2: Vec2([f32; 2]),
-    // vec3: Vec3([f32; 3]),
-    // vec4: Vec4([f32; 4]),
-    // quaternion: Quat([f32; 4]),
 }
 
 pub fn str<'a>(value: &'a str) -> Token<'a> {

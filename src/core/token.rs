@@ -192,28 +192,86 @@ impl<'a> Token<'a> {
 ///
 /// # Generates
 ///
-/// ```rust,ignore
+/// ```rust
+/// # #[derive(Debug, PartialEq)]
+/// # enum Error {
+/// #     UnknownTag,
+/// #     ExpectedType(&'static str),
+/// # }
+/// # #[derive(Debug, PartialEq)]
+/// # enum TokenTag {
+/// #     U32,
+/// #     I32,
+/// # }
+/// # impl TokenTag {
+/// #     fn from_u8(tag: u8) -> Result<Self, Error> {
+/// #         match tag {
+/// #             0x04 => Ok(TokenTag::U32),
+/// #             0x08 => Ok(TokenTag::I32),
+/// #             _ => Err(Error::UnknownTag),
+/// #         }
+/// #     }
+/// # }
 /// impl TokenTag {
 ///     pub fn matches(&self, tag: u8) -> Result<(), Error> {
-///         // Converts the byte to TokenTag or returns error if unknown
-///         // Compares with self and returns Ok if they match
-///         // If they don't match, returns specific error for the found type
+///         let found = TokenTag::from_u8(tag)?;
+///         if &found == self {
+///             Ok(())
+///         } else {
+///             Err(Error::ExpectedType(match found {
+///                 TokenTag::U32 => "U32",
+///                 TokenTag::I32 => "I32",
+///             }))
+///         }
 ///     }
 /// }
 /// ```
 ///
 /// # Usage Example
 ///
-/// ```rust,ignore
+/// ```rust
+/// # #[derive(Debug, PartialEq)]
+/// # enum Error {
+/// #     UnknownTag,
+/// #     ExpectedType(&'static str),
+/// # }
+/// # #[derive(Debug, PartialEq)]
+/// # enum TokenTag {
+/// #     U32,
+/// #     I32,
+/// # }
+/// # impl TokenTag {
+/// #     fn from_u8(tag: u8) -> Result<Self, Error> {
+/// #         match tag {
+/// #             0x04 => Ok(TokenTag::U32),
+/// #             0x08 => Ok(TokenTag::I32),
+/// #             _ => Err(Error::UnknownTag),
+/// #         }
+/// #     }
+/// #     pub fn matches(&self, tag: u8) -> Result<(), Error> {
+/// #         let found = TokenTag::from_u8(tag)?;
+/// #         if &found == self {
+/// #             Ok(())
+/// #         } else {
+/// #             Err(Error::ExpectedType(match found {
+/// #                 TokenTag::U32 => "U32",
+/// #                 TokenTag::I32 => "I32",
+/// #             }))
+/// #         }
+/// #     }
+/// # }
 /// let expected = TokenTag::U32;
 /// let byte_tag = 0x04; // Corresponds to U32
-/// 
+///
 /// // This returns Ok(())
-/// expected.matches(byte_tag)?;
-/// 
+/// assert_eq!(expected.matches(byte_tag), Ok(()));
+///
 /// let wrong_byte = 0x08; // Corresponds to I32
 /// // This returns Err(Error::ExpectedType("I32"))
-/// expected.matches(wrong_byte)?;
+/// assert_eq!(
+///     expected.matches(wrong_byte),
+///     Err(Error::ExpectedType("I32"))
+/// );
 /// ```
 macro_rules! impl_matches_token_tag {
     ($($variant:ident),*) => {
@@ -248,13 +306,24 @@ macro_rules! impl_matches_token_tag {
 ///
 /// # Generates
 ///
-/// ```rust,ignore
+/// ```rust
+/// # use std::borrow::Cow;
+/// # #[derive(Debug, PartialEq)]
+/// # enum Token<'a> {
+/// #     U32(Cow<'a, str>, u32),
+/// #     Str(Cow<'a, str>, &'a str),
+/// # }
+/// # #[derive(Debug, PartialEq)]
+/// # enum TokenTag {
+/// #     U32,
+/// #     Str,
+/// # }
 /// impl<'a> From<&Token<'a>> for TokenTag {
 ///     fn from(token: &Token<'a>) -> Self {
 ///         match token {
 ///             Token::U32(..) => TokenTag::U32,
 ///             Token::Str(..) => TokenTag::Str,
-///             // ... for all variants
+///             // ...
 ///         }
 ///     }
 /// }
@@ -262,10 +331,30 @@ macro_rules! impl_matches_token_tag {
 ///
 /// # Usage Example
 ///
-/// ```rust,ignore
+/// ```rust
+/// # use std::borrow::Cow;
+/// # #[derive(Debug, PartialEq)]
+/// # enum Token<'a> {
+/// #     U32(Cow<'a, str>, u32),
+/// #     Str(Cow<'a, str>, &'a str),
+/// # }
+/// # #[derive(Debug, PartialEq)]
+/// # enum TokenTag {
+/// #     U32,
+/// #     Str,
+/// # }
+/// # impl<'a> From<&Token<'a>> for TokenTag {
+/// #     fn from(token: &Token<'a>) -> Self {
+/// #         match token {
+/// #             Token::U32(..) => TokenTag::U32,
+/// #             Token::Str(..) => TokenTag::Str,
+/// #             // ...
+/// #         }
+/// #     }
+/// # }
 /// let token = Token::U32(Cow::Borrowed("age"), 25);
 /// let tag: TokenTag = (&token).into();
-/// 
+///
 /// assert_eq!(tag, TokenTag::U32);
 /// ```
 #[cfg(feature = "alloc")]

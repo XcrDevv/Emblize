@@ -93,7 +93,7 @@ macro_rules! impl_serialize_vec {
 /// - Have all fields as `T` where `T: VectorNumber + serde::Deserialize`
 /// - Have fields in the order specified (order matters for deserialization)
 ///
-/// # Examples
+/// # Example
 ///
 /// ```rust,ignore
 /// use serde::Deserialize;
@@ -107,9 +107,8 @@ macro_rules! impl_serialize_vec {
 ///
 /// impl_deserialize_vec!(Vec3, x, y, z);
 ///
-/// let bytes = /* binary data */;
+/// let bytes = vec![0x0A, 0x40, 0xC9, 0x0F, 0xDB];
 /// let v: Vec3<f32> = deserialize(&bytes).unwrap();
-/// assert_eq!(v, Vec3 { x: 1.0, y: 2.0, z: 3.0 });
 /// ```
 ///
 /// ```rust,ignore

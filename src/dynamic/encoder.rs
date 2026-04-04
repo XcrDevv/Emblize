@@ -170,8 +170,8 @@ impl<B: SerializerBuf> Serializer<B> {
 /// use emblize::dynamic::{StructBuilder, encode};
 ///
 /// let data = StructBuilder::new_root()
-///     .u8("flag", 1)
-///     .f32_array("data", &[3.0, 5.0])
+///     .u8("id", 1)
+///     .vec3("data", &[1.0, 2.0, 3.0])
 ///     .build();
 ///
 /// let content_bytes = encode(&data).unwrap();

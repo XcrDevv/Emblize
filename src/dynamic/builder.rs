@@ -17,8 +17,8 @@
 //! use emblize::dynamic::StructBuilder;
 //!
 //! let token = StructBuilder::new_root()
-//!     .u8("flag", 1)
-//!     .f32_array("values", &[3.0, 5.0])
+//!     .u8("id", 1)
+//!     .vec3("data", &[1.0, 2.0, 3.0])
 //!     .build();
 //! ```
 //!
