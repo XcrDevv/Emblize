@@ -119,7 +119,7 @@ fn deserialize_f64() {
 
 #[test]
 fn deserialize_string() {
-    let value = [TokenTag::Str as u8, 0x00, 0x07, 0x45, 0x6D, 0x62, 0x6C, 0x69, 0x7A, 0x65];
+    let value = [TokenTag::Str as u8, 0x07, 0x45, 0x6D, 0x62, 0x6C, 0x69, 0x7A, 0x65];
     let expected = String::from("Emblize");
 
     assert_eq!(
@@ -343,39 +343,6 @@ fn deserialize_empty_seq() {
         expected
     );
 }
-
-// #[test]
-// fn deserialize_str_seq() {
-//     let value = [TokenTag::StrArr as u8, 0x00, 0x02, 0x00, 0x01, 0x61, 0x00, 0x01, 0x62];
-//     let expected: Vec<&str> = vec!["a", "b"];
-
-//     assert_eq!(
-//         from_bytes::<Vec<&str>>(&value).unwrap(),
-//         expected
-//     );
-// }
-
-// #[test]
-// fn deserialize_seq_i32() {
-//     let value = [TokenTag::I32Arr as u8, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02];
-//     let expected: Vec<i32> = vec![1, 2];
-
-//     assert_eq!(
-//         from_bytes::<Vec<i32>>(&value).unwrap(),
-//         expected
-//     );
-// }
-
-// #[test]
-// fn deserialize_tuple_i32() {
-//     let value = [TokenTag::I32Arr as u8, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02];
-//     let expected: (i32, i32) = (1, 2);
-
-//     assert_eq!(
-//         from_bytes::<(i32, i32)>(&value).unwrap(),
-//         expected
-//     );
-// }
 
 #[test]
 fn deserialize_array() {

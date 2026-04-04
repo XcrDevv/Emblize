@@ -4,18 +4,18 @@ use emblize::dynamic::{encode, decode, StructBuilder, factory::*};
 use emblize::core::token::Token;
 use emblize::types::*;
 
-// TODO: Add token tests for Some/None types
-
 #[test]
 fn build_tokens() {
     let token = StructBuilder::new_root()
         .f32("f32", 1.0)
         .string("str", "lorem")
-        .enum_("enm", 1, Some(bool(true)))
-        .map(StructBuilder::new("struct").f32("f32", 3.14))
+        .variant("enm", 1, Some(bool(true)))
+        .map("struct", |b| {
+            b.f32("f32", 3.14)
+        })
         .bytes("u8_arr", &[1, 2, 3])
         .timestamp_ms("tsms", 1)
-        .vec3("vec3", Vec3::default().as_arr())
+        .vec3::<f64>("vec3", &Vec3::default().as_arr())
         .build();
 
     let expected_token = Token::Struct(None, vec![
@@ -27,7 +27,7 @@ fn build_tokens() {
         ]),
         Token::Bytes(Some("u8_arr".into()), vec![1, 2, 3].into()),
         Token::TimestampMillis(Some("tsms".into()), 1),
-        Token::Vec3(Some("vec3".into()), [0.0, 0.0, 0.0]),
+        Token::Vec3(Some("vec3".into()), Box::new([Token::F64(None, 0.0), Token::F64(None, 0.0), Token::F64(None, 0.0)])),
     ]);
 
     assert_eq!(token, expected_token)
@@ -100,7 +100,7 @@ fn serialize_deserialize_string() {
 #[test]
 fn serialize_deserialize_enum() {
     let token = StructBuilder::new_root()
-        .enum_("enm", 1, Some(bool(true)))
+        .variant("enm", 1, Some(bool(true)))
         .build();
     
     let expected_token = Token::Struct(None, vec![
@@ -132,7 +132,9 @@ fn serialize_deserialize_some() {
 #[test]
 fn serialize_deserialize_struct() {
     let token = StructBuilder::new_root()
-        .map(StructBuilder::new("struct").f32("f32", 3.14))
+        .map("struct", |b| {
+            b.f32("f32", 3.14)
+        })
         .build();
     
     let expected_token = Token::Struct(None, vec![
@@ -214,11 +216,11 @@ fn serialize_deserialize_timestamp_ms() {
 #[test]
 fn serialize_deserialize_vec3() {
     let token = StructBuilder::new_root()
-        .vec3("vec3", Vec3::new(0.0, 1.0, 2.0).as_arr())
+        .vec3("vec3", &Vec3::new(0.0, 1.0, 2.0).as_arr())
         .build();
     
     let expected_token = Token::Struct(None, vec![
-        Token::Vec3(Some("vec3".into()), [0.0, 1.0, 2.0]),
+        Token::Vec3(Some("vec3".into()), Box::new([Token::F64(None, 0.0), Token::F64(None, 1.0), Token::F64(None, 2.0)])),
     ]);
 
     let bytes = encode(&token).unwrap();
