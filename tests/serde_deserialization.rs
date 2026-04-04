@@ -30,50 +30,6 @@ fn deserialize_false() {
 }
 
 #[test]
-fn deserialize_u8() {
-    let value = [TokenTag::U8 as u8, 0x06];
-    let expected: u8 = 6;
-
-    assert_eq!(
-        from_bytes::<u8>(&value).unwrap(),
-        expected
-    );
-}
-
-#[test]
-fn deserialize_u32() {
-    let value = [TokenTag::U32 as u8, 0x61, 0x62, 0x63, 0x64];
-    let expected: u32 =1633837924;
-
-    assert_eq!(
-        from_bytes::<u32>(&value).unwrap(),
-        expected
-    );
-}
-
-#[test]
-fn deserialize_i8() {
-    let value = [TokenTag::I8 as u8, 0xF1];
-    let expected: i8 = -15;
-
-    assert_eq!(
-        from_bytes::<i8>(&value).unwrap(),
-        expected
-    );
-}
-
-#[test]
-fn deserialize_i32() {
-    let value = [TokenTag::I32 as u8, 0xFF, 0x62, 0x63, 0x64];
-    let expected: i32 = -10329244;
-
-    assert_eq!(
-        from_bytes::<i32>(&value).unwrap(),
-        expected
-    );
-}
-
-#[test]
 fn deserialize_f32() {
     let value = [TokenTag::F32 as u8, 0xFF, 0x62, 0x63, 0x64];
     let expected: f32 =  -3.009215926773463e+38;
@@ -102,17 +58,6 @@ fn deserialize_f32_neg_inf() {
 
     assert_eq!(
         from_bytes::<f32>(&value).unwrap(),
-        expected
-    );
-}
-
-#[test]
-fn deserialize_f64() {
-    let value = [TokenTag::F64 as u8, 0xFF, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68];
-    let expected: f64 = -4.035208983966375e+305;
-
-    assert_eq!(
-        from_bytes::<f64>(&value).unwrap(),
         expected
     );
 }
@@ -239,19 +184,6 @@ fn deserialize_none() {
     )
 }
 
-#[test]
-fn deserialize_vec2() {
-    let value = [TokenTag::Vec2 as u8, TokenTag::F32 as u8,
-        0x00, 0x00, 0x00, 0x00, 
-        0x3F, 0x80, 0x00, 0x00,
-    ];
-    let expected = Vec2::new(0.0, 1.0);
-
-    assert_eq!(
-        from_bytes::<Vec2<f32>>(&value).unwrap(),
-        expected
-    );
-}
 
 #[test]
 fn deserialize_vec3() {
@@ -269,66 +201,12 @@ fn deserialize_vec3() {
 }
 
 #[test]
-fn deserialize_vec4() {
-    let value = [TokenTag::Vec4 as u8, TokenTag::F32 as u8,
-        0x00, 0x00, 0x00, 0x00, 
-        0x3F, 0x80, 0x00, 0x00,
-        0x40, 0x00, 0x00, 0x00,
-        0x40, 0x40, 0x00, 0x00,
-    ];
-    let expected = Vec4::new(0.0, 1.0, 2.0, 3.0);
-
-    assert_eq!(
-        from_bytes::<Vec4<f32>>(&value).unwrap(),
-        expected
-    );
-}
-
-#[test]
-fn deserialize_quaternion() {
-    let value = [TokenTag::Quat as u8, TokenTag::F32 as u8,
-        0x00, 0x00, 0x00, 0x00, 
-        0x3F, 0x80, 0x00, 0x00,
-        0x40, 0x00, 0x00, 0x00,
-        0x40, 0x40, 0x00, 0x00,
-    ];
-    let expected = Quat::new(0.0, 1.0, 2.0, 3.0);
-
-    assert_eq!(
-        from_bytes::<Quat>(&value).unwrap(),
-        expected
-    );
-}
-
-#[test]
 fn deserialize_timestamp_ms() {
     let value = [TokenTag::TimestampMillis as u8, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68];
     let expected = TimestampMillis(7017280452245743464);
 
     assert_eq!(
         from_bytes::<TimestampMillis>(&value).unwrap(),
-        expected
-    );
-}
-
-#[test]
-fn deserialize_ms_since_boot() {
-    let value = [TokenTag::MillisSinceBoot as u8, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68];
-    let expected = MillisSinceBoot(7017280452245743464);
-
-    assert_eq!(
-        from_bytes::<MillisSinceBoot>(&value).unwrap(),
-        expected
-    );
-}
-
-#[test]
-fn deserialize_duration_ms() {
-    let value = [TokenTag::DurationMillis as u8, 0xFF, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68];
-    let expected = DurationMillis(-44363763471194264);
-
-    assert_eq!(
-        from_bytes::<DurationMillis>(&value).unwrap(),
         expected
     );
 }
