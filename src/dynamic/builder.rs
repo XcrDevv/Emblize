@@ -98,6 +98,7 @@ impl<'a> StructBuilder<'a> {
         self
     }
 
+    /// Appends a typed array token from a list of tokens, returning an `Error` if the elements are heterogeneous (not the same type).
     pub fn array<I>(mut self, name: &'a str, values: I) -> Result<Self>
     where
         I: IntoIterator<Item = Token<'a>>,
@@ -137,6 +138,10 @@ impl<'a> StructBuilder<'a> {
         Ok(self)
     }
 
+    /// Appends a typed array token without checking for type homogeneity.
+    /// 
+    /// # Safety
+    /// All tokens in `values` must be of the same type.
     pub unsafe fn array_unchecked(mut self, name: &'a str, values: &'a [Token<'a>]) -> Self {
         if values.is_empty() {
             self.tokens.push(Token::EmptyArr(None));

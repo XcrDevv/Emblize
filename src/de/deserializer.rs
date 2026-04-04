@@ -24,7 +24,7 @@ impl<'de> Deserializer<'de> {
         }
     }
 
-       #[cfg(target_pointer_width = "16")]
+    #[cfg(target_pointer_width = "16")]
     #[inline(always)]
     pub fn read_variant_usize(&mut self) -> Result<usize> {
         self.read_variant_n::<16>()
