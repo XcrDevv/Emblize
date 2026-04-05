@@ -193,10 +193,7 @@ impl<'a> StructBuilder<'a> {
         self
     }
 
-    pub fn quaternion<'b, T>(mut self, name: &'a str, values: &'b [T; 4]) -> Self 
-        where 
-        T: VectorNumber + Into<Token<'a>>
-    {
+    pub fn quaternion<'b>(mut self, name: &'a str, values: &'b [f32; 4]) -> Self {
         let tokens: Vec<Token> = values.iter().map(|&v| v.into()).collect();
         let token = Token::Quat(Some(name.into()), Box::new(tokens.try_into().unwrap()));
         self.tokens.push(token);
