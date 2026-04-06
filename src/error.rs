@@ -43,6 +43,9 @@ pub enum Error {
     #[error("Invalid token")]
     InvalidToken,
 
+    #[error("Invalid bytes")]
+    InvalidBytes,
+
     #[error("Root token expected at start")]
     ExpectedRoot,
 

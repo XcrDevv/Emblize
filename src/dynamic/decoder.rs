@@ -12,16 +12,42 @@ use crate::de::deserializer::{DeState, Deserializer};
 use crate::error::{Error, Result};
 use crate::core::{reader::Reader, utils::endian::BytesNum};
 
+/// Saves the current state, sets `ReadUntypedValue`, executes `$body`,
+/// Restores the value if it was ReadTypedValue. Returns the value of $body.
+macro_rules! with_untyped_state {
+    ($self:expr, $body:block) => {{
+        let was_typed = $self.state == DeState::ReadTypedValue;
+        $self.state = DeState::ReadUntypedValue;
+        let result = $body;
+        if was_typed {
+            $self.state = DeState::ReadTypedValue;
+        }
+        result
+    }};
+}
+
+/// Activate ReadSeq with the given tag, execute $body, and restore the previous state.
+macro_rules! with_seq_state {
+    ($self:expr, $arr_type:expr, $body:block) => {{
+        let prev = $self.state;
+        $self.state = DeState::ReadSeq(Some($arr_type as u8));
+        $body;
+        $self.state = prev;
+    }};
+}
+
 impl<'de> Deserializer<'de> {
     pub fn read_any(&mut self) -> Result<Token<'de>> {
-        let name = match self.state {
-            DeState::ReadTypedValue => Some(Cow::Owned(self.read_string()?)),
-            _ => None,
+        let name = if self.state == DeState::ReadTypedValue {
+            Some(Cow::Owned(self.read_string()?))
+        } else {
+            None
         };
 
         let tag = match self.state {
-            DeState::ReadSeq(t)  => t.unwrap(),
-            _ => self.input.read_byte()?
+            DeState::ReadSeq(Some(t)) => t,
+            DeState::ReadSeq(None) => return Err(Error::InvalidToken),
+            _ => self.input.read_byte()?,
         };
 
         let token: Token<'de> = match TokenTag::try_from(tag).map_err(|_| Error::UnknownDType(tag))? {
@@ -39,78 +65,57 @@ impl<'de> Deserializer<'de> {
 
             TokenTag::Str => Token::Str(name, Cow::Owned(self.read_string()?)),
             TokenTag::Enum => {
-                let is_field = self.state == DeState::ReadTypedValue;
-                self.state = DeState::ReadUntypedValue;
+                let variant_byte = self.input.read_number::<u8>()?;
+                let token = with_untyped_state!(self, {
+                    let is_some = (variant_byte & 0x80) != 0;
+                    let variant_index = variant_byte & 0x7F;
 
-                let variant_index = self.input.read_number::<u8>()?;
-                let token = if (variant_index & 0x80) != 0 {
-                    let token = Box::new(self.read_any().unwrap());
-                    Token::Enum(name, variant_index & 0x7F, Some(token))
-
-                } else {
-                    Token::Enum(name, variant_index & 0x7F, None)
-                };
-
-                if is_field {
-                    self.state = DeState::ReadTypedValue
-                }
-
+                    if is_some {
+                        let inner = Box::new(self.read_any()?);
+                        Token::Enum(name, variant_index, Some(inner))
+                    } else {
+                        Token::Enum(name, variant_index, None)
+                    }
+                });
                 token
             }
+
             TokenTag::Some => {
-                let is_field = self.state == DeState::ReadTypedValue;
-                self.state = DeState::ReadUntypedValue;
-
-                let token = Box::new(self.read_any().unwrap());
-                
-                if is_field {
-                    self.state = DeState::ReadTypedValue;
-                }
-
-                Token::Some(name, token)
+                with_untyped_state!(self, {
+                    let inner = Box::new(self.read_any()?);
+                    Token::Some(name, inner)
+                })
             }
-            TokenTag::None => {
-                let is_field = self.state == DeState::ReadTypedValue;
-                self.state = DeState::ReadUntypedValue;
 
-                if is_field {
-                    self.state = DeState::ReadTypedValue;
-                }
-                
-                Token::None(name)
-            }
+            TokenTag::None => Token::None(name),
 
             TokenTag::Struct => {
                 self.state = DeState::ReadTypedValue;
-
                 let field_count = self.input.read_byte()? as usize;
                 let mut tokens = Vec::with_capacity(field_count);
-
                 for _ in 0..field_count {
-                    let token = self.read_any()?;
-                    tokens.push(token);
+                    tokens.push(self.read_any()?);
                 }
-                
                 Token::Struct(name, tokens)
-            },
+            }
 
             TokenTag::EmptyArr => Token::EmptyArr(name),
+
             TokenTag::Array => {
+                let arr_type = TokenTag::try_from_primitive(self.input.read_byte()?)
+                    .map_err(|_| Error::InvalidToken)?;
                 let size = self.read_variant_usize()?;
                 let mut tokens = Vec::with_capacity(size);
-                let arr_type = TokenTag::try_from_primitive(self.input.read_byte()?)
-                .map_err(|_| Error::InvalidToken)?;
-            
-                let prev = self.state;
-                self.state = DeState::ReadSeq(Some(arr_type as u8));
-                for _ in 0..size {
-                    let token = self.read_any()?;
-                    tokens.push(token);
-                }
-                self.state = prev;
-                
+
+                with_seq_state!(self, arr_type, {
+                    for _ in 0..size {
+                        tokens.push(self.read_any()?);
+                    }
+                });
+
                 Token::Array(name, arr_type, tokens)
             }
+
             TokenTag::Bytes => Token::Bytes(name, self.read_seq()?),
 
             TokenTag::TimestampMillis => Token::TimestampMillis(name, self.input.read_number()?),
@@ -138,17 +143,17 @@ impl<'de> Deserializer<'de> {
     fn read_seq<T: BytesNum + Clone>(&mut self) -> Result<Cow<'de, [T]>> {
         let num_size = size_of::<T>();
         let len = self.read_variant_usize()?;
-
         let mut buf = vec![0; len * num_size];
         self.input.read_exact(&mut buf)?;
 
         let values: Vec<T> = buf
             .chunks_exact(size_of::<T>())
             .map(|chunk| {
-                let bytes = T::Bytes::try_from(chunk).ok().unwrap();
-                T::from_be_bytes(bytes)
+                T::Bytes::try_from(chunk)
+                    .map(T::from_be_bytes)
+                    .map_err(|_| Error::InvalidBytes)
             })
-            .collect();
+            .collect::<Result<Vec<T>>>()?;
 
         Ok(Cow::Owned(values))
     }
@@ -156,20 +161,14 @@ impl<'de> Deserializer<'de> {
     fn read_fixed_seq<const N: usize> (
         &mut self,
     ) -> Result<[Token<'de>; N]> {
-        let is_field = self.state == DeState::ReadTypedValue;
-        self.state = DeState::ReadUntypedValue;
+        let _token_tag = self.input.read_byte()?;
 
-        let _ = self.input.read_byte()?;
-        let mut vec = vec![];
-
-        for _ in 0..N {
-            let token = self.read_any()?;
-            vec.push(token);
-        }
-
-        if is_field {
-            self.state = DeState::ReadTypedValue
-        }
+        let mut vec = Vec::with_capacity(N);
+        with_untyped_state!(self, {
+            for _ in 0..N {
+                vec.push(self.read_any()?);
+            }
+        });
 
         Ok(vec.try_into().unwrap())
     }
