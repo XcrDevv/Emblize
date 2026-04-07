@@ -245,22 +245,22 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         }
     }
 
-    fn deserialize_unit<V>(self, _visitor: V) -> Result<V::Value>
+    fn deserialize_unit<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        Err(Error::DeUnsupported("unit ()"))
+        visitor.visit_unit()
     }
 
     fn deserialize_unit_struct<V>(
         self,
         _name: &'static str,
-        _visitor: V,
+        visitor: V,
     ) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        Err(Error::DeUnsupported("unit struct"))
+        visitor.visit_unit()
     }
 
     fn deserialize_newtype_struct<V>(
@@ -312,7 +312,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
                 self.expected_tag(TokenTag::DurationMicros)?;
                 self.state = DeState::ReadUntypedValue;
             }
-            _ => unreachable!("{}", name),
+            _ => unreachable!(),
         }
 
         visitor.visit_newtype_struct(self)
@@ -406,7 +406,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: de::Visitor<'de>,
     {
-        unimplemented!("Maps deserialization hasn't yet been implemented");
+        unimplemented!("Maps deserialization hasn't yet been implemented"); // ! CHECK
     }
 
     fn deserialize_struct<V>(

@@ -180,14 +180,14 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
     }
 
     fn serialize_unit(self) -> Result<Self::Ok> {
-        Err(Error::SerUnsupported("unit ()"))
+        Ok(())
     }
 
     fn serialize_unit_struct(
         self,
         _name: &'static str,
     ) -> Result<Self::Ok> {
-        Err(Error::SerUnsupported("unit struct"))
+        Ok(())
     }
 
     fn serialize_unit_variant(
@@ -310,14 +310,14 @@ fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple> {
         _variant: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeTupleVariant> {
-        Err(Error::SerUnsupported("tuple variant"))
+        Err(Error::SerUnsupported("tuple variant")) // ! CHECK
     }
 
     fn serialize_map(
         self,
         _len: Option<usize>,
     ) -> Result<Self::SerializeMap> {
-        unimplemented!("Map serialization has not yet been implemented")
+        unimplemented!("Map serialization has not yet been implemented") // ! CHECK
     }
 
     fn serialize_struct_variant(
