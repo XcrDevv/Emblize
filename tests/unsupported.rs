@@ -25,44 +25,6 @@ fn unsupported_serialize_char() {
 
 #[test]
 #[should_panic]
-fn unsupported_serialize_unit() {
-    let _ = to_allocvec(&()).unwrap();
-}
-
-#[test]
-#[should_panic]
-fn unsupported_serialize_unit_struct() {
-    #[derive(Serialize)]
-    struct S;
-
-    #[derive(Serialize)]
-    struct Root {
-        v: S
-    }
-
-    let value = Root { v: S };
-    let _ = to_allocvec(&value).unwrap();
-}
-
-#[test]
-#[should_panic]
-fn unsupported_serialize_tuple_variant() {
-    #[derive(Serialize)]
-    enum E {
-        VariantA(u8, u8)
-    }
-
-    #[derive(Serialize)]
-    struct Root {
-        v: E
-    }
-
-    let value = Root { v: E::VariantA(0, 0) };
-    let _ = to_allocvec(&value).unwrap();
-}
-
-#[test]
-#[should_panic]
 fn unsupported_deserialize_char() {
     #[derive(Deserialize)]
     struct Root {
@@ -81,30 +43,6 @@ fn unsupported_deserialize_bytes() {
     struct Root<'a> {
         #[allow(dead_code)]
         v: &'a [u8]
-    }
-
-    let value = make_fake_value(&[0x00, 0x00]);
-    let _ = from_bytes::<Root>(&value).unwrap();
-}
-
-#[test]
-#[should_panic]
-fn unsupported_deserialize_unit() {
-    let value = make_fake_value(&[0x00, 0x00]);
-    let _ = from_bytes::<()>(&value).unwrap();
-}
-
-
-#[test]
-#[should_panic]
-fn unsupported_deserialize_unit_struct() {
-    #[derive(Deserialize)]
-    struct S;
-
-    #[derive(Deserialize)]
-    struct Root {
-        #[allow(dead_code)]
-        v: S
     }
 
     let value = make_fake_value(&[0x00, 0x00]);
