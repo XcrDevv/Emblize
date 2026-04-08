@@ -52,6 +52,36 @@ impl<'de> Deserializer<'de> {
 
         Ok(())
     }
+
+    fn prepare_seq(&mut self, expected_len: Option<usize>) -> Result<usize> {
+        let len = match self.state {
+            DeState::ReadSeq(_) => {
+                let len = self.read_variant_usize()?;
+                let arr_type = self.input.read_byte()?;
+                self.state = DeState::ReadSeq(Some(arr_type));
+                len
+            }
+            _ => {
+                let tag = self.input.read_byte()?;
+                if tag == TokenTag::EmptyArr as u8 {
+                    0
+                } else {
+                    let len = self.read_variant_usize()?;
+                    let arr_type = self.input.read_byte()?;
+                    self.state = DeState::ReadSeq(Some(arr_type));
+                    len
+                }
+            }
+        };
+
+        if let Some(expected) = expected_len {
+            if len != expected {
+                return Err(Error::MissmatchLength { expected, got: len });
+            }
+        }
+
+        Ok(len)
+    }
 }
 
 impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
@@ -322,25 +352,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: de::Visitor<'de>,
     {
-        let len = match self.state {
-            DeState::ReadSeq(_) => {
-                let len = self.read_variant_usize()?;
-                let arr_type = self.input.read_byte()?;
-                self.state = DeState::ReadSeq(Some(arr_type));
-                len
-            }
-            _ => {
-                let tag = self.input.read_byte()?;
-                if tag == TokenTag::EmptyArr as u8 {
-                    0
-                } else {
-                    let len = self.read_variant_usize()?;
-                    let arr_type = self.input.read_byte()?;
-                    self.state = DeState::ReadSeq(Some(arr_type));
-                    len
-                }
-            }
-        };
+        let len = self.prepare_seq(None)?;
 
         visitor.visit_seq(SizedCollection {
             de: self,
@@ -360,25 +372,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             })
         }
         
-        let len = match self.state {
-            DeState::ReadSeq(_) => {
-                let len = self.read_variant_usize()?;
-                let arr_type = self.input.read_byte()?;
-                self.state = DeState::ReadSeq(Some(arr_type));
-                len
-            }
-            _ => {
-                let tag = self.input.read_byte()?;
-                if tag == TokenTag::EmptyArr as u8 {
-                    0
-                } else {
-                    let len = self.read_variant_usize()?;
-                    let arr_type = self.input.read_byte()?;
-                    self.state = DeState::ReadSeq(Some(arr_type));
-                    len
-                }
-            }
-        };
+        let len = self.prepare_seq(Some(tup_len))?;
 
         if len != tup_len {
             return Err(Error::MissmatchLength { expected: tup_len, got: len });
