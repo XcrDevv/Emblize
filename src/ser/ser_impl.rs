@@ -61,7 +61,7 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
     type SerializeSeq = SeqSerializer<'a, B>;
     type SerializeTuple = TupSerializer<'a, B>;
     type SerializeTupleStruct = SeqSerializer<'a, B>;
-    type SerializeTupleVariant = Self;
+    type SerializeTupleVariant = TupSerializer<'a, B>;
     type SerializeMap = Self;
     type SerializeStruct = Self;
     type SerializeStructVariant = Self;
@@ -306,11 +306,30 @@ fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple> {
     fn serialize_tuple_variant(
         self,
         _name: &'static str,
-        _variant_index: u32,
+        variant_index: u32,
         _variant: &'static str,
-        _len: usize,
+        len: usize,
     ) -> Result<Self::SerializeTupleVariant> {
-        Err(Error::SerUnsupported("tuple variant")) // ! CHECK
+        self.write_tag(TokenTag::Enum)?;
+        if variant_index > 0x7F {
+            Err(Error::IndexVariantExceeded)
+        } else {
+            self.state = SerState::WriteSeqHeader;
+            self.buf.push_byte(variant_index as u8 | 0x80)?;
+            let prev_state = self.state;
+
+            if self.state != SerState::WriteVecHeader {
+                self.write_tag(TokenTag::Array)?;
+                self.write_varint_usize(len)?;
+                self.state = SerState::WriteSeqHeader;
+            }
+
+            Ok(TupSerializer {
+                prev_state,
+                ser: self,
+                first_tag: None,
+            })
+        }
     }
 
     fn serialize_map(
@@ -369,6 +388,45 @@ impl<'a, B: SerializerBuf> ser::SerializeTuple for TupSerializer<'a, B> {
     type Error = Error;
 
     fn serialize_element<T>(&mut self, value: &T) -> Result<()>
+    where
+        T: ?Sized + Serialize,
+    {
+
+        match self.first_tag {
+            None => {
+                let pos_before = self.ser.buf.as_slice().len();
+                value.serialize(&mut *self.ser)?;
+                let written_tag = self.ser.buf.as_slice()[pos_before];
+                self.first_tag = Some(TokenTag::try_from(written_tag).unwrap());
+            }
+            Some(expected) => {
+                self.prev_state = self.ser.state;
+                if self.ser.state == SerState::WriteVecHeader {
+                    self.ser.state = SerState::WriteUntypedValue;
+                } else {
+                    self.ser.state = SerState::WriteUntypedChecked(expected);
+                }
+                value.serialize(&mut *self.ser)?;
+            }
+        }
+        Ok(())
+    }
+
+
+    fn end(self) -> Result<Self::Ok> {
+        self.ser.state = match self.prev_state {
+            SerState::WriteSeqHeader => SerState::WriteUntypedValue,
+            other => other,
+        };
+        Ok(())
+    }
+}
+
+impl<'a, B: SerializerBuf> ser::SerializeTupleVariant for TupSerializer<'a, B> {
+    type Ok = ();
+    type Error = Error;
+
+    fn serialize_field<T>(&mut self, value: &T) -> Result<()>
     where
         T: ?Sized + Serialize,
     {

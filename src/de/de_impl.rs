@@ -540,6 +540,12 @@ impl<'de, 'a> VariantAccess<'de> for Enum<'a, 'de> {
     where
         V: de::Visitor<'de>,
     {
+        let obtained_len = self.de.prepare_seq(Some(len))?;
+
+        if len != len {
+            return Err(Error::MissmatchLength { expected: len, got: obtained_len });
+        }
+
         visitor.visit_seq(SizedCollection {
             de: self.de,
             remaining: len,
