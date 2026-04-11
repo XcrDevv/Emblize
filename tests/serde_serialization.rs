@@ -145,6 +145,34 @@ fn serializer_newtype_variant() {
 }
 
 #[test]
+fn serialize_tuple_variant() {
+    #[derive(Serialize)]
+    enum E {
+        VariantA(i32, i32, i32),
+
+        #[allow(dead_code)]
+        VariantB,
+    }
+
+    let value = E::VariantA(1, 2, 3);
+    let expected = vec![
+        TokenTag::Enum as u8, 
+        0x80,
+        TokenTag::Array as u8, 
+        0x03, 
+        TokenTag::I32 as u8, 
+        0x00, 0x00, 0x00, 0x01, 
+        0x00, 0x00, 0x00, 0x02,
+        0x00, 0x00, 0x00, 0x03
+    ];
+
+    assert_eq!(
+        to_allocvec(&value).unwrap(),
+        expected
+    )
+}
+
+#[test]
 fn serialize_struct_variant() {
     #[derive(Serialize)]
     enum E {

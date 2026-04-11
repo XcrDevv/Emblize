@@ -133,6 +133,35 @@ fn deserialize_newtype_variant() {
     )
 }
 
+
+#[test]
+fn deserialize_tuple_variant() {
+    #[derive(Deserialize, PartialEq, Eq, Debug)]
+    enum E {
+        VariantA(i32, i32, i32),
+
+        #[allow(dead_code)]
+        VariantB,
+    }
+
+    let value = vec![
+        TokenTag::Enum as u8, 
+        0x80,
+        TokenTag::Array as u8, 
+        0x03, 
+        TokenTag::I32 as u8, 
+        0x00, 0x00, 0x00, 0x01, 
+        0x00, 0x00, 0x00, 0x02,
+        0x00, 0x00, 0x00, 0x03
+    ];
+    let expected = E::VariantA(1, 2, 3);
+
+    assert_eq!(
+        from_bytes::<E>(&value).unwrap(),
+        expected
+    )
+}
+
 #[test]
 fn deserialize_struct_variant() {
     #[derive(Debug, Deserialize, PartialEq, Eq)]
