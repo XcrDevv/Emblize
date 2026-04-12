@@ -334,9 +334,10 @@ fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple> {
 
     fn serialize_map(
         self,
-        _len: Option<usize>,
+        len: Option<usize>,
     ) -> Result<Self::SerializeMap> {
-        unimplemented!("Map serialization has not yet been implemented") // ! CHECK
+        let len = len.ok_or(Error::LengthRequired)?;
+        self.serialize_struct("", len)
     }
 
     fn serialize_struct_variant(

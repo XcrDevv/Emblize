@@ -396,11 +396,11 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         self.deserialize_tuple(len, visitor)
     }
 
-    fn deserialize_map<V>(self, _visitor: V) -> Result<V::Value>
+    fn deserialize_map<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        unimplemented!("Maps deserialization hasn't yet been implemented"); // ! CHECK
+        self.deserialize_struct("", &[], visitor)
     }
 
     fn deserialize_struct<V>(
