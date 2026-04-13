@@ -17,7 +17,7 @@ fn unsupported_deserialize_char() {
 
 #[test]
 #[should_panic]
-fn unsupported_serialize_tuple_t() {
+fn unsupported_serialize_heterogeneous_tuple() {
     #[derive(Serialize)]
     struct Root {
         v: (i32, u32)
@@ -29,7 +29,7 @@ fn unsupported_serialize_tuple_t() {
 
 #[test]
 #[should_panic]
-fn unsupported_deserialize_tuple_t() {
+fn unsupported_deserialize_heterogeneous_tuple() {
     let value = [TokenTag::Array as u8, TokenTag::I32 as u8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02];
     let _ = from_bytes::<(i32, u32)>(&value).unwrap();
 }
