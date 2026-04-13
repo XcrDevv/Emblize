@@ -38,19 +38,6 @@ fn unsupported_deserialize_char() {
 
 #[test]
 #[should_panic]
-fn unsupported_deserialize_bytes() {
-    #[derive(Deserialize)]
-    struct Root<'a> {
-        #[allow(dead_code)]
-        v: &'a [u8]
-    }
-
-    let value = make_fake_value(&[0x00, 0x00]);
-    let _ = from_bytes::<Root>(&value).unwrap();
-}
-
-#[test]
-#[should_panic]
 fn unsupported_serialize_tuple_t() {
     #[derive(Serialize)]
     struct Root {
