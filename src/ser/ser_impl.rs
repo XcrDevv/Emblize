@@ -60,7 +60,7 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
 
     type SerializeSeq = SeqSerializer<'a, B>;
     type SerializeTuple = TupSerializer<'a, B>;
-    type SerializeTupleStruct = SeqSerializer<'a, B>;
+    type SerializeTupleStruct = TupSerializer<'a, B>;
     type SerializeTupleVariant = TupSerializer<'a, B>;
     type SerializeMap = Self;
     type SerializeStruct = Self;
@@ -297,10 +297,19 @@ fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple> {
     fn serialize_tuple_struct(
         self,
         _name: &'static str,
-        _len: usize,
+        len: usize,
     ) -> Result<Self::SerializeTupleStruct> {
+        let prev_state = self.state;
+
+        self.write_tag(TokenTag::Array)?;
+        self.write_varint_usize(len)?;
         self.state = SerState::WriteSeqHeader;
-        Ok(SeqSerializer { prev_state: self.state, ser: self, wrote_elem_type: false })
+
+        Ok(TupSerializer {
+            prev_state,
+            ser: self,
+            first_tag: None,
+        })
     }
 
     fn serialize_tuple_variant(
@@ -462,7 +471,7 @@ impl<'a, B: SerializerBuf> ser::SerializeTupleVariant for TupSerializer<'a, B> {
     }
 }
 
-impl<'a, B: SerializerBuf> ser::SerializeTupleStruct for SeqSerializer<'a, B> {
+impl<'a, B: SerializerBuf> ser::SerializeTupleStruct for TupSerializer<'a, B> {
     type Ok = ();
     type Error = Error;
 
@@ -470,10 +479,31 @@ impl<'a, B: SerializerBuf> ser::SerializeTupleStruct for SeqSerializer<'a, B> {
     where
         T: ?Sized + Serialize,
     {
-        value.serialize(&mut *self.ser)
+         match self.first_tag {
+            None => {
+                let pos_before = self.ser.buf.as_slice().len();
+                value.serialize(&mut *self.ser)?;
+                let written_tag = self.ser.buf.as_slice()[pos_before];
+                self.first_tag = Some(TokenTag::try_from(written_tag).unwrap());
+            }
+            Some(expected) => {
+                self.prev_state = self.ser.state;
+                if self.ser.state == SerState::WriteVecHeader {
+                    self.ser.state = SerState::WriteUntypedValue;
+                } else {
+                    self.ser.state = SerState::WriteUntypedChecked(expected);
+                }
+                value.serialize(&mut *self.ser)?;
+            }
+        }
+        Ok(())
     }
 
     fn end(self) -> Result<Self::Ok> {
+        self.ser.state = match self.prev_state {
+            SerState::WriteSeqHeader => SerState::WriteUntypedValue,
+            other => other,
+        };
         Ok(())
     }
 }
