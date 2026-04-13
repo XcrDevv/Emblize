@@ -1,39 +1,18 @@
 #![cfg(feature = "alloc")]
 
 use emblize::{core::token::TokenTag, from_bytes, to_allocvec};
-use serde::{Deserialize, Serialize};
-
-const STRUCT_PREFIX: &[u8] = &[TokenTag::Struct as u8, 0x01, 0x00, 0x01, 0x76];
-
-fn make_fake_value(suffix: &[u8]) -> Vec<u8> {
-    let mut v = Vec::from(STRUCT_PREFIX);
-    v.extend_from_slice(suffix);
-    v
-}
+use serde::Serialize;
 
 #[test]
 #[should_panic]
 fn unsupported_serialize_char() {
-    #[derive(Serialize)]
-    struct Root {
-        v: char
-    }
-
-    let value = Root { v: 'a' };
-    let _ = to_allocvec(&value).unwrap();
+    let _ = to_allocvec(&'f').unwrap();
 }
 
 #[test]
 #[should_panic]
 fn unsupported_deserialize_char() {
-    #[derive(Deserialize)]
-    struct Root {
-        #[allow(dead_code)]
-        v: char
-    }
-
-    let value = make_fake_value(&[0x00, 0x00]);
-    let _ = from_bytes::<Root>(&value).unwrap();
+    let _ = from_bytes::<char>(&[0x00, 0x00]).unwrap();
 }
 
 #[test]
