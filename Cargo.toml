@@ -13,7 +13,7 @@ serde = { version = "1.0.219", features = ["derive"], default-features = false }
 thiserror = { version = "2.0.17", default-features = false }
 
 [features]
-default = []
+default = ["std"]
 alloc = ["serde/std", "thiserror/std"]
 std = ["alloc"]
 frame = []
