@@ -139,12 +139,17 @@ impl<B: SerializerBuf> Serializer<B> {
         let vec_type = values.first()
             .map(TokenTag::from).unwrap();
 
-        self.buf.push_byte(tag as u8)?;
+        if self.state != SerState::WriteUntypedValue {
+            self.buf.push_byte(tag as u8)?;
+        }
         self.buf.push_byte(vec_type as u8)?;
 
+        let prev = self.state;
+        self.state = SerState::WriteUntypedValue;
         for n in values {
             self.write_any(n)?;
         }
+        self.state = prev;
         Ok(())
     }
 }
