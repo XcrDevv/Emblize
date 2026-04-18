@@ -16,11 +16,9 @@ A compact binary format for embedded systems, with `no_std` support.
 ## Usage
 
 ```toml
+# with std support by default
 [dependencies]
 emblize = "0.1"
-
-# with std support by default
-emblize = { version = "0.1" }
 ```
 ### Serialize / Deserialize
 
