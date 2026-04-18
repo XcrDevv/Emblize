@@ -1,7 +1,7 @@
 #![cfg(feature = "alloc")]
 
 use emblize::dynamic::{encode, decode, StructBuilder, factory::*};
-use emblize::core::token::Token;
+use emblize::core::token::{Token, TokenTag};
 use emblize::types::*;
 
 #[test]
@@ -184,11 +184,12 @@ fn serialize_deserialize_bytes() {
 #[test]
 fn serialize_deserialize_array() {
     let token = StructBuilder::new_root()
-        .bytes("array", &[0x00, 0xFF, 0x33, 0x26])
+        .array("array", [u32(1), u32(2)])
+        .unwrap()
         .build();
     
     let expected_token = Token::Struct(None, vec![
-        Token::Bytes(Some("array".into()), vec![0x00, 0xFF, 0x33, 0x26].into()),
+        Token::Array(Some("array".into()), TokenTag::U32, vec![u32(1), u32(2)].into()),
     ]);
 
     let bytes = encode(&token).unwrap();

@@ -102,9 +102,9 @@ impl<'de> Deserializer<'de> {
             TokenTag::EmptyArr => Token::EmptyArr(name),
 
             TokenTag::Array => {
+                let size = self.read_variant_usize()?;
                 let arr_type = TokenTag::try_from_primitive(self.input.read_byte()?)
                     .map_err(|_| Error::InvalidToken)?;
-                let size = self.read_variant_usize()?;
                 let mut tokens = Vec::with_capacity(size);
 
                 with_seq_state!(self, arr_type, {
