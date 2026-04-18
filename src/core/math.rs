@@ -33,15 +33,6 @@ where
     pub w: T,
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub struct Quat {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub w: f32,
-}
-
 pub trait VectorNumber: BytesNum + Serialize + for<'de> Deserialize<'de> + Copy {}
 
 impl<T> VectorNumber for T
@@ -88,14 +79,4 @@ where
         unsafe { *(self as *const Vec4<T> as *const [T; 4]) }
     }
     
-}
-
-impl Quat {
-    pub fn new(x: f32, y: f32, z: f32, w: f32) -> Self {
-        return Self { x, y, z, w };
-    }
-    
-    pub fn as_arr(&self) -> [f32; 4] {
-        unsafe { *(self as *const Quat as *const [f32; 4]) }
-    }
 }

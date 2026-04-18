@@ -128,7 +128,6 @@ impl<'de> Deserializer<'de> {
             TokenTag::Vec2 => Token::Vec2(name, Box::new(self.read_fixed_seq()?)),
             TokenTag::Vec3 => Token::Vec3(name, Box::new(self.read_fixed_seq()?)),
             TokenTag::Vec4 => Token::Vec4(name, Box::new(self.read_fixed_seq()?)),
-            TokenTag::Quat => Token::Quat(name, Box::new(self.read_fixed_seq()?)),
         };
 
         Ok(token)

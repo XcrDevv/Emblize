@@ -39,7 +39,6 @@ pub enum TokenTag {
     Vec2 = 0x40,
     Vec3 = 0x41,
     Vec4 = 0x42,
-    Quat = 0x43,
 
     Struct = 0xA0,
 }
@@ -76,7 +75,7 @@ impl_from_to_token_str!(
     Str, Enum, Some, None,
     Struct, EmptyArr, Array, Bytes,
     TimestampMillis, TimestampMicros, MillisSinceBoot, MicrosSinceBoot, DurationMillis, DurationMicros, 
-    Vec2, Vec3, Vec4, Quat
+    Vec2, Vec3, Vec4
 );
 
 #[cfg(feature = "alloc")]
@@ -133,7 +132,6 @@ pub enum Token<'a> {
     Vec2(Name<'a>, Box<[Token<'a>; 2]>),
     Vec3(Name<'a>, Box<[Token<'a>; 3]>),
     Vec4(Name<'a>, Box<[Token<'a>; 4]>),
-    Quat(Name<'a>, Box<[Token<'a>; 4]>),
 
     Struct(Option<Cow<'a, str>>, Vec<Token<'a>>),
 }
@@ -168,8 +166,7 @@ impl<'a> Token<'a> {
             | Token::DurationMicros(name, _)
             | Token::Vec2(name, _)
             | Token::Vec3(name, _)
-            | Token::Vec4(name, _)
-            | Token::Quat(name, _) => {
+            | Token::Vec4(name, _) => {
                 name.as_deref().expect("Token must have a name")
             }
 
@@ -378,7 +375,7 @@ impl_matches_token_tag!(
     Str, Enum, Some, None,
     Struct, EmptyArr, Array, Bytes,
     TimestampMillis, TimestampMicros, MillisSinceBoot, MicrosSinceBoot, DurationMillis, DurationMicros, 
-    Vec2, Vec3, Vec4, Quat
+    Vec2, Vec3, Vec4
 );
 
 // Generates the `Token` -> `TokenTag` conversion implementation for all types
@@ -388,5 +385,5 @@ impl_from_token_to_tag!(
     Str, Enum, Some, None,
     Struct, EmptyArr, Array, Bytes,
     TimestampMillis, TimestampMicros, MillisSinceBoot, MicrosSinceBoot, DurationMillis, DurationMicros, 
-    Vec2, Vec3, Vec4, Quat
+    Vec2, Vec3, Vec4
 );

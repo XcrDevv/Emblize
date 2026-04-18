@@ -314,10 +314,6 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
                 self.expected_tag(TokenTag::Vec4)?;
                 self.state = DeState::ReadVec
             }
-            "Quat" => {
-                self.expected_tag(TokenTag::Quat)?;
-                self.state = DeState::ReadVec
-            }
             "TimestampMillis" => {
                 self.expected_tag(TokenTag::TimestampMillis)?;
                 self.state = DeState::ReadUntypedValue;
@@ -623,65 +619,3 @@ impl_deserialize_time!(DurationMicros, i64, visit_i64, deserialize_i64);
 impl_deserialize_vec!(Vec2, x, y);
 impl_deserialize_vec!(Vec3, x, y, z);
 impl_deserialize_vec!(Vec4, x, y, z, w);
-
-impl<'de> serde::Deserialize<'de> for Quat
-{
-    fn deserialize<D>(deserializer: D) -> core::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        struct V;
-
-        impl<'de> serde::de::Visitor<'de> for V
-        {
-            type Value = Quat;
-
-            fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
-                write!(
-                    formatter,
-                    "Quat as [x f32, y f32, z f32, w f32]"
-                )
-            }
-
-            fn visit_newtype_struct<D>(self, deserializer: D) -> core::result::Result<Self::Value, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                deserializer.deserialize_tuple(LEN, self)
-            }
-
-            fn visit_seq<A>(self, mut seq: A) -> core::result::Result<Self::Value, A::Error>
-            where
-                A: serde::de::SeqAccess<'de>,
-            {
-                let mut iter = (0usize..).into_iter();
-
-                let i = iter.next().unwrap();
-                let x: f32 = seq
-                    .next_element()?
-                    .ok_or_else(|| serde::de::Error::invalid_length(i, &self))?;
-
-                let i = iter.next().unwrap();
-                let y: f32 = seq
-                    .next_element()?
-                    .ok_or_else(|| serde::de::Error::invalid_length(i, &self))?;
-
-                let i = iter.next().unwrap();
-                let z: f32 = seq
-                    .next_element()?
-                    .ok_or_else(|| serde::de::Error::invalid_length(i, &self))?;
-
-                let i = iter.next().unwrap();
-                let w: f32 = seq
-                    .next_element()?
-                    .ok_or_else(|| serde::de::Error::invalid_length(i, &self))?;
-
-                Ok(Quat::new(x, y, z, w))
-            }
-        }
-
-        const LEN: usize = 4;
-
-        deserializer.deserialize_newtype_struct("Quat", V)
-    }
-}

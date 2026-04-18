@@ -219,8 +219,7 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
         match token_tag {
             TokenTag::Vec2
              |TokenTag::Vec3
-             |TokenTag::Vec4
-             |TokenTag::Quat => self.state = SerState::WriteVecHeader,
+             |TokenTag::Vec4 => self.state = SerState::WriteVecHeader,
             _ => self.state = SerState::WriteUntypedValue
         }
 
@@ -610,15 +609,3 @@ impl_serialize_time!(DurationMicros);
 impl_serialize_vec!(Vec2, x, y);
 impl_serialize_vec!(Vec3, x, y, z);
 impl_serialize_vec!(Vec4, x, y, z, w);
-
-impl serde::Serialize for Quat {
-        fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
-        where
-            S: serde::Serializer,
-        {
-            serializer.serialize_newtype_struct(
-                "Quat",
-                &(self.x, self.y, self.z, self.w)
-            )
-        }
-    }

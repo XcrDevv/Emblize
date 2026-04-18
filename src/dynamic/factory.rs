@@ -142,12 +142,6 @@ pub fn vec4<'a, T: VectorNumber + Into<Token<'a>>>(values: &'a [T; 4]) -> Token<
     Token::Vec4(None, Box::new(tokens.try_into().unwrap()))
 }
 
-// ! Mistake Quaternions are not generic
-pub fn quaternion<'a>(values: &'a [f32; 4]) -> Token<'a> {
-    let tokens: Vec<Token> = values.iter().map(|&v| v.into()).collect();
-    Token::Quat(None, Box::new(tokens.try_into().unwrap()))
-}
-
 macro_rules! impl_from_number {
     (
         $(

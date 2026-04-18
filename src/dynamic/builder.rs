@@ -193,13 +193,6 @@ impl<'a> StructBuilder<'a> {
         self
     }
 
-    pub fn quaternion<'b>(mut self, name: &'a str, values: &'b [f32; 4]) -> Self {
-        let tokens: Vec<Token> = values.iter().map(|&v| v.into()).collect();
-        let token = Token::Quat(Some(name.into()), Box::new(tokens.try_into().unwrap()));
-        self.tokens.push(token);
-        self
-    }
-
     /// Consumes the builder and produces a [`Token::Struct`].
     ///
     /// This method finalizes the accumulated tokens and wraps them

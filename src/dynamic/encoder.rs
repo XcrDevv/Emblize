@@ -102,7 +102,6 @@ impl<B: SerializerBuf> Serializer<B> {
             Token::Vec2(name, values) => self.write_fixed_seq(name, TokenTag::from(token), &**values)?,
             Token::Vec3(name, values) => self.write_fixed_seq(name, TokenTag::from(token), &**values)?,
             Token::Vec4(name, values) => self.write_fixed_seq(name, TokenTag::from(token), &**values)?,
-            Token::Quat(name, values) => self.write_fixed_seq(name, TokenTag::from(token), &**values)?,
         };
 
         Ok(())
