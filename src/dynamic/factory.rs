@@ -60,7 +60,7 @@ type_factory! {
     duration_us: DurationMicros(i64),
 }
 
-pub fn str<'a>(value: &'a str) -> Token<'a> {
+pub fn string<'a>(value: &'a str) -> Token<'a> {
     Token::Str(None, value.into())
 }
 
