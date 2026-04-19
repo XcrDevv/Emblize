@@ -17,6 +17,16 @@ macro_rules! try_write_name {
     };
 }
 
+macro_rules! try_write_tag {
+    ($self:expr, $tag:expr) => {
+        if $self.state != SerState::WriteUntypedValue {
+            $self.buf.push_byte($tag)
+        } else {
+            Ok(())
+        }
+    };
+}
+
 impl<B: SerializerBuf> Serializer<B> { 
     pub fn write_any(&mut self, token: &Token) -> Result<()> {
         match token {
@@ -34,11 +44,14 @@ impl<B: SerializerBuf> Serializer<B> {
 
             Token::Str(name, value) => {
                 try_write_name!(self, name)?;
-                self.buf.push_byte(TokenTag::from(token) as u8)?;
+                try_write_tag!(self, TokenTag::from(token) as u8)?;
+
                 self.write_string(value)?;
             }
+            
             Token::Enum(name, variant_index,variant) => {
                 try_write_name!(self, name)?;
+
                 self.buf.push_byte(TokenTag::from(token) as u8)?;
 
                 if let Some(variant) = variant {
@@ -51,22 +64,14 @@ impl<B: SerializerBuf> Serializer<B> {
             }
             Token::Some(name, value) => {
                 try_write_name!(self, name)?;
+
                 self.buf.push_byte(TokenTag::from(token) as u8)?;
                 self.write_any(value)?;
             },
             Token::None(name) => {
                 try_write_name!(self, name)?;
-                self.buf.push_byte(TokenTag::from(token) as u8)?;
-            }
-            Token::Struct(name, fields) => {
-                try_write_name!(self, name)?;
 
                 self.buf.push_byte(TokenTag::from(token) as u8)?;
-                self.write_varint_usize(fields.len())?;
-
-                for field in fields.iter() {
-                    self.write_any(field)?;
-                }
             }
             Token::EmptyArr(name) => {
                 try_write_name!(self, name)?;
@@ -74,7 +79,8 @@ impl<B: SerializerBuf> Serializer<B> {
             },
             Token::Array(name, arr_type, values) => {
                 try_write_name!(self, name)?;
-                self.buf.push_byte(TokenTag::from(token) as u8)?;
+                try_write_tag!(self, TokenTag::from(token) as u8)?;
+
                 self.write_varint_usize(values.len())?;
                 self.buf.push_byte(*arr_type as u8)?;
                 
@@ -85,9 +91,21 @@ impl<B: SerializerBuf> Serializer<B> {
                 }
                 self.state = prev;
             }
+
+            Token::Struct(name, fields) => {
+                try_write_name!(self, name)?;
+                try_write_tag!(self, TokenTag::from(token) as u8)?;
+
+                self.write_varint_usize(fields.len())?;
+
+                for field in fields.iter() {
+                    self.write_any(field)?;
+                }
+            }
             Token::Bytes(name, values) => {
                 try_write_name!(self, name)?;
-                self.buf.push_byte(TokenTag::from(token) as u8)?;
+                try_write_tag!(self, TokenTag::from(token) as u8)?;
+
                 self.write_varint_usize(values.len())?;
                 self.buf.push_bytes(values)?;
             }
@@ -99,9 +117,9 @@ impl<B: SerializerBuf> Serializer<B> {
             Token::DurationMillis(name, value)   => self.write_number(name, *value, TokenTag::from(token) as u8)?,
             Token::DurationMicros(name, value)   => self.write_number(name, *value, TokenTag::from(token) as u8)?,
 
-            Token::Vec2(name, values) => self.write_fixed_seq(name, TokenTag::from(token), &**values)?,
-            Token::Vec3(name, values) => self.write_fixed_seq(name, TokenTag::from(token), &**values)?,
-            Token::Vec4(name, values) => self.write_fixed_seq(name, TokenTag::from(token), &**values)?,
+            Token::Vec2(name, values) => self.write_fixed_seq(name, TokenTag::from(token) as u8, &**values)?,
+            Token::Vec3(name, values) => self.write_fixed_seq(name, TokenTag::from(token) as u8, &**values)?,
+            Token::Vec4(name, values) => self.write_fixed_seq(name, TokenTag::from(token) as u8, &**values)?,
         };
 
         Ok(())
@@ -122,9 +140,8 @@ impl<B: SerializerBuf> Serializer<B> {
         tag: u8,
     ) -> Result<()> {
         try_write_name!(self, name)?;
-        if self.state != SerState::WriteUntypedValue {
-            self.buf.push_byte(tag)?;
-        }
+        try_write_tag!(self, tag)?;
+
         self.buf.push_bytes(value.to_be_bytes().as_ref())?;
         Ok(())
     }
@@ -132,16 +149,14 @@ impl<B: SerializerBuf> Serializer<B> {
     fn write_fixed_seq(
         &mut self,
         name: &Option<Cow<'_, str>>,
-        tag: TokenTag,
+        tag: u8,
         values: &[Token],
     ) -> Result<()> {
         try_write_name!(self, name)?;
         let vec_type = values.first()
             .map(TokenTag::from).unwrap();
+        try_write_tag!(self, tag)?;
 
-        if self.state != SerState::WriteUntypedValue {
-            self.buf.push_byte(tag as u8)?;
-        }
         self.buf.push_byte(vec_type as u8)?;
 
         let prev = self.state;
