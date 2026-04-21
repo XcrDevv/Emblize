@@ -1,6 +1,4 @@
-use crate::{core::reader::Reader, error::Error};
-#[cfg(target_pointer_width = "64")]
-use crate::error::Result;
+use crate::{core::reader::Reader, error::{Error, Result}};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum DeState {

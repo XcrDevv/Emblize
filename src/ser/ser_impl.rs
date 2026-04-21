@@ -66,6 +66,12 @@ impl<'a, B: SerializerBuf> ser::Serializer for &'a mut Serializer<B> {
     type SerializeStruct = Self;
     type SerializeStructVariant = Self;
 
+    fn collect_str<T>(self, _value: &T) -> Result<Self::Ok>
+        where
+            T: ?Sized + core::fmt::Display, {
+        unimplemented!()
+    }
+
     fn serialize_bool(self, v: bool) -> Result<Self::Ok> {
         self.write_tag(TokenTag::Bool)?;
         self.buf.push_byte(if v { 1 } else { 0 })?;
