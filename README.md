@@ -11,7 +11,7 @@ A compact binary format for embedded systems, with `no_std` support.
 - `heapless` support for fixed-capacity buffers
 - `alloc` / `std` features for dynamic containers
 - Serde integration via `#[derive(Serialize, Deserialize)]`
-- Built-in types for embedded use: `Vec2`, `Vec3`, `Vec4`, `Quat`, timestamps, durations
+- Built-in types for embedded use: `Vec2`, `Vec3`, `Vec4`, timestamps, durations
 
 ## Usage
 

@@ -28,7 +28,6 @@
 //! The crate includes several embedded-friendly newtypes, such as:
 //!
 //! - `Vec2`, `Vec3`, `Vec4`
-//! - `Quaternion`
 //! - Time-related types like `TimestampMillis`, `MillisSinceBoot`,
 //!   `DurationMillis`, and their microsecond variants.
 //!

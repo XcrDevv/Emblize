@@ -32,23 +32,10 @@
 /// let bytes = serialize(&v).unwrap();
 /// ```
 ///
-/// ```rust,ignore
-/// use serde::Serialize;
-///
-/// struct Quat<T> {
-///     x: T,
-///     y: T,
-///     z: T,
-///     w: T,
-/// }
-///
-/// impl_serialize_vec!(Quat, x, y, z, w);
-/// ```
-///
 /// # Wire Format
 ///
-/// The serialized data uses the binary protocol's `Vec2`, `Vec3`, `Vec4`, or 
-/// `Quat` token types depending on the number of fields, supporting any numeric 
+/// The serialized data uses the binary protocol's `Vec2`, `Vec3` or `Vec4`
+/// token types depending on the number of fields, supporting any numeric 
 /// type `T` that implements `VectorNumber` (e.g., `f32`, `f64`, `i32`).
 #[macro_export]
 macro_rules! impl_serialize_vec {
@@ -111,20 +98,6 @@ macro_rules! impl_serialize_vec {
 /// let v: Vec3<f32> = deserialize(&bytes).unwrap();
 /// ```
 ///
-/// ```rust,ignore
-/// use serde::Deserialize;
-///
-/// #[derive(Debug, PartialEq)]
-/// struct Quat<T> {
-///     x: T,
-///     y: T,
-///     z: T,
-///     w: T,
-/// }
-///
-/// impl_deserialize_vec!(Quat, x, y, z, w);
-/// ```
-///
 /// # Error Handling
 ///
 /// Returns a deserialization error if:
@@ -134,8 +107,8 @@ macro_rules! impl_serialize_vec {
 ///
 /// # Wire Format
 ///
-/// Expects data serialized with the binary protocol's `Vec2`, `Vec3`, `Vec4`, 
-/// or `Quat` token types depending on the number of fields, supporting any 
+/// Expects data serialized with the binary protocol's `Vec2`, `Vec3` or `Vec4`
+/// token types depending on the number of fields, supporting any
 /// numeric type `T` that implements `VectorNumber`.
 #[macro_export]
 macro_rules! impl_deserialize_vec {

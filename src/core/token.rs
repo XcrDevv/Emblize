@@ -95,7 +95,7 @@ type Name<'a> = Option<Cow<'a, str>>;
 /// - A nested token (`Enum`)
 /// - A collection of nested tokens (`Struct`)
 /// - Time-related values (timestamps, durations, etc.)
-/// - Math types (Vec2, Vec3, Vec4, Quat)
+/// - Math types (Vec2, Vec3, Vec4)
 ///
 /// The exact binary layout of the payload depends on the variant.
 #[cfg(feature = "alloc")]
