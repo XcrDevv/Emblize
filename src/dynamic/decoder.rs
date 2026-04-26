@@ -10,7 +10,7 @@ use num_enum::TryFromPrimitive;
 use crate::core::token::{Token, TokenTag};
 use crate::de::deserializer::{DeState, Deserializer};
 use crate::error::{Error, Result};
-use crate::core::{reader::Reader, utils::endian::BytesNum};
+use crate::core::reader::Reader;
 
 /// Saves the current state, sets `ReadUntypedValue`, executes `$body`,
 /// Restores the value if it was ReadTypedValue. Returns the value of $body.
@@ -116,7 +116,13 @@ impl<'de> Deserializer<'de> {
                 Token::Array(name, arr_type, tokens)
             }
 
-            TokenTag::Bytes => Token::Bytes(name, self.read_seq()?),
+            TokenTag::Bytes => {
+                let size = self.read_variant_usize()?;
+                let mut buf = vec![0; size];
+                self.input.read_exact(&mut buf)?;
+
+                Token::Bytes(name, buf.into())
+            },
 
             TokenTag::TimestampMillis => Token::TimestampMillis(name, self.input.read_number()?),
             TokenTag::TimestampMicros => Token::TimestampMicros(name, self.input.read_number()?),
@@ -139,31 +145,13 @@ impl<'de> Deserializer<'de> {
         Ok(string.to_owned())
     }
 
-    fn read_seq<T: BytesNum + Clone>(&mut self) -> Result<Cow<'de, [T]>> {
-        let num_size = size_of::<T>();
-        let len = self.read_variant_usize()?;
-        let mut buf = vec![0; len * num_size];
-        self.input.read_exact(&mut buf)?;
-
-        let values: Vec<T> = buf
-            .chunks_exact(size_of::<T>())
-            .map(|chunk| {
-                T::Bytes::try_from(chunk)
-                    .map(T::from_be_bytes)
-                    .map_err(|_| Error::InvalidBytes)
-            })
-            .collect::<Result<Vec<T>>>()?;
-
-        Ok(Cow::Owned(values))
-    }
-
     fn read_fixed_seq<const N: usize> (
         &mut self,
     ) -> Result<[Token<'de>; N]> {
         let vec_type = TokenTag::try_from_primitive(self.input.read_byte()?)
                     .map_err(|_| Error::InvalidToken)?;
 
-        let mut vec = Vec::with_capacity(N);
+        let mut vec = Vec::new();
         with_seq_state!(self, vec_type,  {
             for _ in 0..N {
                 vec.push(self.read_any()?);

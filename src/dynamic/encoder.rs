@@ -29,22 +29,24 @@ macro_rules! try_write_tag {
 
 impl<B: SerializerBuf> Serializer<B> { 
     pub fn write_any(&mut self, token: &Token) -> Result<()> {
+        let token_tag = TokenTag::from(token) as u8;
+
         match token {
-            Token::Bool(name, value)  => self.write_number(name, *value as u8,  TokenTag::from(token) as u8)?,
-            Token::U8(name, value)      => self.write_number(name, *value,         TokenTag::from(token) as u8)?,
-            Token::U16(name, value)    => self.write_number(name, *value,         TokenTag::from(token) as u8)?,
-            Token::U32(name, value)    => self.write_number(name, *value,         TokenTag::from(token) as u8)?,
-            Token::U64(name, value)    => self.write_number(name, *value,         TokenTag::from(token) as u8)?,
-            Token::I8(name, value)      => self.write_number(name, *value,         TokenTag::from(token) as u8)?,
-            Token::I16(name, value)    => self.write_number(name, *value,         TokenTag::from(token) as u8)?,
-            Token::I32(name, value)    => self.write_number(name, *value,         TokenTag::from(token) as u8)?,
-            Token::I64(name, value)    => self.write_number(name, *value,         TokenTag::from(token) as u8)?,
-            Token::F32(name, value)    => self.write_number(name, *value,         TokenTag::from(token) as u8)?,
-            Token::F64(name, value)    => self.write_number(name, *value,         TokenTag::from(token) as u8)?,
+            Token::Bool(name, value)  => self.write_number(name, *value as u8,  token_tag)?,
+            Token::U8(name, value)      => self.write_number(name, *value,         token_tag)?,
+            Token::U16(name, value)    => self.write_number(name, *value,         token_tag)?,
+            Token::U32(name, value)    => self.write_number(name, *value,         token_tag)?,
+            Token::U64(name, value)    => self.write_number(name, *value,         token_tag)?,
+            Token::I8(name, value)      => self.write_number(name, *value,         token_tag)?,
+            Token::I16(name, value)    => self.write_number(name, *value,         token_tag)?,
+            Token::I32(name, value)    => self.write_number(name, *value,         token_tag)?,
+            Token::I64(name, value)    => self.write_number(name, *value,         token_tag)?,
+            Token::F32(name, value)    => self.write_number(name, *value,         token_tag)?,
+            Token::F64(name, value)    => self.write_number(name, *value,         token_tag)?,
 
             Token::Str(name, value) => {
                 try_write_name!(self, name)?;
-                try_write_tag!(self, TokenTag::from(token) as u8)?;
+                try_write_tag!(self, token_tag)?;
 
                 self.write_string(value)?;
             }
@@ -52,7 +54,7 @@ impl<B: SerializerBuf> Serializer<B> {
             Token::Enum(name, variant_index,variant) => {
                 try_write_name!(self, name)?;
 
-                self.buf.push_byte(TokenTag::from(token) as u8)?;
+                self.buf.push_byte(token_tag)?;
 
                 if let Some(variant) = variant {
                     self.buf.push_byte(variant_index | 0x80)?;
@@ -65,22 +67,23 @@ impl<B: SerializerBuf> Serializer<B> {
             Token::Some(name, value) => {
                 try_write_name!(self, name)?;
 
-                self.buf.push_byte(TokenTag::from(token) as u8)?;
+                self.buf.push_byte(token_tag)?;
                 self.write_any(value)?;
             },
             Token::None(name) => {
                 try_write_name!(self, name)?;
 
-                self.buf.push_byte(TokenTag::from(token) as u8)?;
+                self.buf.push_byte(token_tag)?;
             }
             Token::EmptyArr(name) => {
                 try_write_name!(self, name)?;
-                self.buf.push_byte(TokenTag::from(token) as u8)?;
+
+                self.buf.push_byte(token_tag)?;
             },
             Token::Array(name, arr_type, values) => {
                 try_write_name!(self, name)?;
-                try_write_tag!(self, TokenTag::from(token) as u8)?;
 
+                self.buf.push_byte(token_tag)?;
                 self.write_varint_usize(values.len())?;
                 self.buf.push_byte(*arr_type as u8)?;
                 
@@ -94,7 +97,7 @@ impl<B: SerializerBuf> Serializer<B> {
 
             Token::Struct(name, fields) => {
                 try_write_name!(self, name)?;
-                try_write_tag!(self, TokenTag::from(token) as u8)?;
+                try_write_tag!(self, token_tag)?;
 
                 self.write_varint_usize(fields.len())?;
 
@@ -104,22 +107,22 @@ impl<B: SerializerBuf> Serializer<B> {
             }
             Token::Bytes(name, values) => {
                 try_write_name!(self, name)?;
-                try_write_tag!(self, TokenTag::from(token) as u8)?;
+                try_write_tag!(self, token_tag)?;
 
                 self.write_varint_usize(values.len())?;
                 self.buf.push_bytes(values)?;
             }
 
-            Token::TimestampMillis(name, value)  => self.write_number(name, *value, TokenTag::from(token) as u8)?,
-            Token::TimestampMicros(name, value)  => self.write_number(name, *value, TokenTag::from(token) as u8)?,
-            Token::MillisSinceBoot(name, value)  => self.write_number(name, *value, TokenTag::from(token) as u8)?,
-            Token::MicrosSinceBoot(name, value)  => self.write_number(name, *value, TokenTag::from(token) as u8)?,
-            Token::DurationMillis(name, value)   => self.write_number(name, *value, TokenTag::from(token) as u8)?,
-            Token::DurationMicros(name, value)   => self.write_number(name, *value, TokenTag::from(token) as u8)?,
+            Token::TimestampMillis(name, value)  => self.write_number(name, *value, token_tag)?,
+            Token::TimestampMicros(name, value)  => self.write_number(name, *value, token_tag)?,
+            Token::MillisSinceBoot(name, value)  => self.write_number(name, *value, token_tag)?,
+            Token::MicrosSinceBoot(name, value)  => self.write_number(name, *value, token_tag)?,
+            Token::DurationMillis(name, value)   => self.write_number(name, *value, token_tag)?,
+            Token::DurationMicros(name, value)   => self.write_number(name, *value, token_tag)?,
 
-            Token::Vec2(name, values) => self.write_fixed_seq(name, TokenTag::from(token) as u8, &**values)?,
-            Token::Vec3(name, values) => self.write_fixed_seq(name, TokenTag::from(token) as u8, &**values)?,
-            Token::Vec4(name, values) => self.write_fixed_seq(name, TokenTag::from(token) as u8, &**values)?,
+            Token::Vec2(name, values) => self.write_fixed_seq(name, token_tag, &**values)?,
+            Token::Vec3(name, values) => self.write_fixed_seq(name, token_tag, &**values)?,
+            Token::Vec4(name, values) => self.write_fixed_seq(name, token_tag, &**values)?,
         };
 
         Ok(())
@@ -153,9 +156,10 @@ impl<B: SerializerBuf> Serializer<B> {
         values: &[Token],
     ) -> Result<()> {
         try_write_name!(self, name)?;
+        try_write_tag!(self, tag)?;
+
         let vec_type = values.first()
             .map(TokenTag::from).unwrap();
-        try_write_tag!(self, tag)?;
 
         self.buf.push_byte(vec_type as u8)?;
 
