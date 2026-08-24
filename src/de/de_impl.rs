@@ -338,7 +338,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
                 self.expected_tag(TokenTag::DurationMicros)?;
                 self.state = DeState::ReadUntypedValue;
             }
-            _ => unreachable!(),
+            _ => return Err(Error::DeserializationError),
         }
 
         visitor.visit_newtype_struct(self)
