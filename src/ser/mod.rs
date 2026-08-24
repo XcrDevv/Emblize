@@ -2,7 +2,7 @@ pub mod serializer;
 mod ser_impl;
 
 use serde::Serialize;
-use crate::error::Result;
+use crate::{error::Result, ser::serializer::Serializer};
 use ser_impl::serialize;
 
 /// Serializes a value into a [`heapless::Vec`] using this crate’s
@@ -82,4 +82,17 @@ where
     T: Serialize + ?Sized,
 {
     serialize(value)
+}
+
+pub fn serialize_into<T>(
+    value: &T,
+    output: &mut [u8]
+) -> Result<usize>
+where T: Serialize + ?Sized,
+{
+    let mut serializer = Serializer::new_slice(output);
+
+    value.serialize(&mut serializer)?;
+
+    Ok(serializer.buf.len())
 }
